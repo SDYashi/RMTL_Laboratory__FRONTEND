@@ -134,11 +134,6 @@ export class WzlabhomeComponent implements OnInit, OnDestroy {
     this.isDropdownOpen = false;
   }
 
-  /**
-   * ✅ Sidebar section toggle:
-   * - closes profile dropdown
-   * - allows only one open section at a time
-   */
   toggleSection(key: SectionKey, event?: Event) {
     event?.stopPropagation();
     this.closeProfileDropdown();

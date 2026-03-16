@@ -228,19 +228,19 @@
                         <div class="row g-3">
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Starting Reading</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01" (ngModelChange)="calcShunt(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Final Reading</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01" (ngModelChange)="calcShunt(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Starting Reading</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01" (ngModelChange)="calcShunt(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Final Reading</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01" (ngModelChange)="calcShunt(i)" required>
                           </div>
 
                           <div class="col-md-3">
@@ -265,9 +265,6 @@
                             <label class="form-label small fw-bold mb-0">Error % (Shunt)</label>
                             <input type="number" class="form-control form-control-sm" [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" step="0.01" readonly>
                           </div>
-                          <div class="col-md-3">
-                            <button class="btn btn-sm btn-success w-100 mt-3" type="button" (click)="calcShunt(i)">Calculate Shunt</button>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -279,19 +276,19 @@
                         <div class="row g-3">
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Starting Reading</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01" (ngModelChange)="calcNutral(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Final Reading </label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01" (ngModelChange)="calcNutral(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Starting Reading </label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01" (ngModelChange)="calcNutral(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Final Reading</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01" required>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01" (ngModelChange)="calcNutral(i)" required>
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Select Starting CurrentTest</label>
@@ -315,32 +312,11 @@
                             <label class="form-label small fw-bold mb-0">Error % (Nutral)</label>
                             <input type="number" class="form-control form-control-sm" [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" step="0.01" readonly>
                           </div>
-                          <div class="col-md-3">
-                            <button class="btn btn-sm btn-success w-100 mt-3" type="button" (click)="calcNutral(i)">Calculate Nutral</button>
-                          </div>
                         </div>
                       </div>
                     </div>
-
-                    <!-- Optional combined error -->
-                    <!-- <div class="col-md-4">
-                      <label class="form-label small fw-bold mb-0">Error % (Combined)</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="r.error_from_mode" [name]="'err_from_'+i">
-                        <option value="">Select Testing Type</option>
-                        <option *ngFor="let t of ternal_testing_types" [value]="t">{{ t }}</option>
-                      </select>
-                    </div>
-                    <div class="col-md-5">
-                      <label class="form-label small fw-bold mb-0">Finally Error %</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="r.error_percentage_import" [name]="'b_err_'+i" step="0.01" readonly>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                      <button class="btn btn-sm btn-success w-100" type="button" (click)="calculateErrorPct(i)">
-                        Final Calculate Error %
-                      </button>
-                    </div> -->
-
-                    <!-- comment -->
+                
+                   <!-- comment -->
                     <div class="col-12">
                       <label class="form-label small fw-bold mb-0">Any Remarks</label>
                       <textarea rows="2" class="form-control form-control-sm" [(ngModel)]="r.final_remarks" [name]="'final_remarks_'+i"></textarea>

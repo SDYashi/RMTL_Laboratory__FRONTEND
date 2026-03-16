@@ -312,7 +312,7 @@ export class RmtlAddTestreportNewmeterComponent implements OnInit {
           this.asgPicker.list = list;
           this.rebuildSerialIndex(list);
           const first = list.find((a) => a.device);
-          this.fillHeaderFromAssignment(first);
+          // this.fillHeaderFromAssignment(first);
 
           this.loading = false;
           this.inlineInfo = `Total ${list.length} assigned device(s) loaded for New Meter testing.`;
@@ -736,7 +736,7 @@ export class RmtlAddTestreportNewmeterComponent implements OnInit {
           this.rebuildSerialIndex(list);
 
           const first = list.find((a) => a.device);
-          this.fillHeaderFromAssignment(first);
+          // this.fillHeaderFromAssignment(first);
         },
         error: () => {
           this.inlineError = 'Could not load assigned devices.';
@@ -791,6 +791,12 @@ export class RmtlAddTestreportNewmeterComponent implements OnInit {
       const d = a.device!;
       const sr = (d.serial_number || '').trim();
       if (!sr || existing.has(sr.toUpperCase())) continue;
+      if (!this.batch.header.location_code) this.batch.header.location_code = a.device?.location_code ?? '';
+      if (!this.batch.header.location_name) this.batch.header.location_name = a.device?.location_name ?? '';
+      if (!this.batch.header.testing_bench) this.batch.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.batch.header.testing_user) this.batch.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.batch.header.approving_user) this.batch.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      if (!this.batch.header.phase && a.device?.phase) this.batch.header.phase = (a.device.phase || '').toUpperCase();
       newRows.push({
         meter_sr_no: sr,
         meter_make: d.make || '',

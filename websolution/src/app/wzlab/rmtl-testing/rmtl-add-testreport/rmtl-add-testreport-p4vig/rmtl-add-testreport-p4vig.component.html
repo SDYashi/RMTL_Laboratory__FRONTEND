@@ -290,19 +290,19 @@
                         <div class="row g-3">
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Starting Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_reading_before_test" [name]="'sh_b_'+i" step="0.01" (ngModelChange)="calcShunt(i)">
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Final Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_reading_after_test" [name]="'sh_a_'+i" step="0.01" (ngModelChange)="calcShunt(i)">
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Starting Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_ref_start_reading" [name]="'sh_rs_'+i" step="0.01" (ngModelChange)="calcShunt(i)">
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Final Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.shunt_ref_end_reading" [name]="'sh_re_'+i" step="0.01" (ngModelChange)="calcShunt(i)">
                           </div>
 
                           <div class="col-md-3">
@@ -327,9 +327,6 @@
                             <label class="form-label small fw-bold mb-0">Error % (Shunt)</label>
                             <input type="number" class="form-control " [(ngModel)]="r.shunt_error_percentage" [name]="'sh_err_'+i" step="0.01" readonly>
                           </div>
-                          <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-sm btn-success w-100" type="button" (click)="calcShunt(i)">Calculate Shunt</button>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -341,19 +338,19 @@
                         <div class="row g-3">
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Starting Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_reading_before_test" [name]="'nu_b_'+i" step="0.01" (ngModelChange)="calcNutral(i)">
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Meter Final Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_reading_after_test" [name]="'nu_a_'+i" step="0.01" (ngModelChange)="calcNutral(i)">
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Starting Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_ref_start_reading" [name]="'nu_rs_'+i" step="0.01" (ngModelChange)="calcNutral(i)">
                           </div>
                           <div class="col-md-3">
                             <label class="form-label small fw-bold mb-0">Reference Meter Final Reading</label>
-                            <input type="number" class="form-control " [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01">
+                            <input type="number" class="form-control " [(ngModel)]="r.nutral_ref_end_reading" [name]="'nu_re_'+i" step="0.01" (ngModelChange)="calcNutral(i)">
                           </div>
 
                           <div class="col-md-3">
@@ -377,9 +374,6 @@
                           <div class="col-md-2">
                             <label class="form-label small fw-bold mb-0">Error % (Nutral)</label>
                             <input type="number" class="form-control " [(ngModel)]="r.nutral_error_percentage" [name]="'nu_err_'+i" step="0.01" readonly>
-                          </div>
-                          <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-sm btn-success w-100" type="button" (click)="calcNutral(i)">Calculate Nutral</button>
                           </div>
                         </div>
                       </div>
@@ -571,21 +565,5 @@
     </div>
   </div>
 
-  <!-- Alert Modal (reused by TS helpers) -->
-  <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': alert.open}" *ngIf="alert.open">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header border-0" style="background: rgb(71, 175, 124); color:#fff;">
-          <h5 class="modal-title">{{ alert.title }}</h5>
-          <button type="button" class="btn-close" (click)="closeAlert()"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0">{{ alert.message }}</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary" (click)="closeAlert()">OK</button>
-        </div>
-      </div>
-    </div>
-  </div>
+
 </div>

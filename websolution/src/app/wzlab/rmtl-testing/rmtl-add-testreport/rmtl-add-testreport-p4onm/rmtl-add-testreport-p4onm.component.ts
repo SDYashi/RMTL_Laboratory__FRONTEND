@@ -252,7 +252,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       next: (data: any) => {
         const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
         this.rebuildSerialIndex(list);
-        this.loadHeaderFromAssignments(list);
+        // this.loadHeaderFromAssignments(list);
         this.loading = false;
         this.inlineInfo = `Total ${list.length} Assigned device(s) found for P4 ONM checking.`;
       },
@@ -306,7 +306,7 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
         const list: AssignmentItem[] = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
         this.pickerAssignments = list;
         this.pickerLoading = false;
-        this.loadHeaderFromAssignments(list);
+        // this.loadHeaderFromAssignments(list);
         this.rebuildSerialIndex(list);
       },
       error: () => { this.pickerLoading = false; this.inlineError = 'Could not load assigned devices.'; }
@@ -349,6 +349,13 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
       const d = a.device!;
       const serial = (d.serial_number || '').trim();
       if (!serial || existing.has(serial.toUpperCase())) return;
+      if (!this.batch.header.location_code) this.batch.header.location_code = a.device?.location_code ?? '';
+      if (!this.batch.header.location_name) this.batch.header.location_name = a.device?.location_name ?? '';
+      if (!this.batch.header.testing_bench) this.batch.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.batch.header.testing_user) this.batch.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.batch.header.approving_user) this.batch.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      if (!this.batch.header.phase && a.device?.phase) this.batch.header.phase = (a.device.phase || '').toUpperCase();
+ 
       this.batch.rows.push(this.emptyRow({
         serial,
         make: d.make || '',

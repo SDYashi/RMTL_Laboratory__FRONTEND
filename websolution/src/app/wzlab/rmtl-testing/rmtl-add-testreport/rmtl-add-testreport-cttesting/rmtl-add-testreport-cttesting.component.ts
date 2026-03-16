@@ -190,7 +190,7 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
         this.fees_mtr_cts = d?.fees_mtr_cts || [];
         this.test_dail_current_cheaps = d?.test_dail_current_cheaps || [];
 
-        this.setInlineMsg('info', '', 'Assigned CTs loaded successfully.');
+        this.setInlineMsg('success', '', 'Assigned CTs loaded successfully.');
       },
       error: () => this.setInlineMsg('error', 'Error', 'Unable to load enums. Please reload.')
     });
@@ -307,22 +307,22 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
           };
         }
 
-        const first = asg[0];
-        if (first) {
-          const dev = first.device as DeviceLite | undefined;
-          this.header.location_code = dev?.location_code || this.header.location_code;
-          this.header.location_name = dev?.location_name || this.header.location_name;
+        // const first = asg[0];
+        // if (first) {
+        //   const dev = first.device as DeviceLite | undefined;
+        //   this.header.location_code = dev?.location_code || this.header.location_code;
+        //   this.header.location_name = dev?.location_name || this.header.location_name;
 
-          this.testing_bench   = this.testing_bench   || first.testing_bench?.bench_name  || '-';
-          this.testing_user    = this.testing_user    || first.user_assigned?.name || '-';
-          this.approving_user  = this.approving_user  || first.assigned_by_user?.name || '-';
+        //   this.testing_bench   = this.testing_bench   || first.testing_bench?.bench_name  || '-';
+        //   this.testing_user    = this.testing_user    || first.user_assigned?.name || '-';
+        //   this.approving_user  = this.approving_user  || first.assigned_by_user?.name || '-';
 
-          this.header.testing_bench   = this.testing_bench;
-          this.header.testing_user    = this.testing_user;
-          this.header.approving_user  = this.approving_user;
+        //   this.header.testing_bench   = this.testing_bench;
+        //   this.header.testing_user    = this.testing_user;
+        //   this.header.approving_user  = this.approving_user;
 
-          if (!this.header.ct_make) this.header.ct_make = dev?.make || '';
-        }
+        //   if (!this.header.ct_make) this.header.ct_make = dev?.make || '';
+        // }
       },
       error: () => {}
     });
@@ -449,64 +449,88 @@ export class RmtlAddTestreportCttestingComponent implements OnInit {
     this.filteredAssigned.forEach(i => (i.selected = on));
   }
 
-  confirmAssignPicker() {
-    const chosen = this.assignedPicker.items.filter(i => i.selected);
-    if (!chosen.length) {
-      this.assignedPicker.open = false;
-      this.setInlineMsg('warning', 'No Selection', 'Please select at least one CT.');
-      return;
-    }
-
-    const onlyOneEmpty =
-      this.ctRows.length === 1 &&
-      !Object.values(this.ctRows[0]).some(v => (v ?? '').toString().trim());
-    if (onlyOneEmpty) this.ctRows = [];
-
-    const existing = new Set(this.ctRows.map(r => (r.serial_number || '').toUpperCase().trim()));
-
-    let added = 0;
-    for (const c of chosen) {
-      const ctno = (c.serial_number || '').trim();
-      if (!ctno || existing.has(ctno.toUpperCase())) continue;
-
-      this.ctRows.push(
-        this.emptyCtRow({
-          serial_number: ctno,
-          make: c.make || '',
-          cap: c.capacity || '',
-          ratio: c.ratio || '',
-          device_id: c.device_id || 0,
-          assignment_id: c.id || 0,
-          notFound: false
-        })
-      );
-      existing.add(ctno.toUpperCase());
-      added++;
-    }
-
-    if (!this.ctRows.length) this.ctRows.push(this.emptyCtRow());
-
-    const first = chosen[0];
-    const dev = first.device;
-    if (dev) {
-      if (!this.header.location_code) this.header.location_code = dev.location_code || '';
-      if (!this.header.location_name) this.header.location_name = dev.location_name || '';
-    }
-
-    this.testing_bench = first.testing_bench?.bench_name || this.testing_bench || '-';
-    this.testing_user = first.testing_user?.name || this.testing_user || '-';
-    this.approving_user = first.approving_user?.name || this.approving_user || '-';
-
-    this.header.testing_bench = this.testing_bench;
-    this.header.testing_user = this.testing_user;
-    this.header.approving_user = this.approving_user;
-
-    this.header.no_of_ct = this.ctRows.filter(r => (r.serial_number || '').trim()).length.toString();
-    this.header.ct_make = this.ctRows[0]?.make || '';
-
+confirmAssignPicker() {
+  const chosen = this.assignedPicker.items.filter(i => i.selected);
+  if (!chosen.length) {
     this.assignedPicker.open = false;
-    this.setInlineMsg('success', 'Added', `${added} CT row(s) added.`);
+    this.setInlineMsg('warning', 'No Selection', 'Please select at least one CT.');
+    return;
   }
+
+  const onlyOneEmpty =
+    this.ctRows.length === 1 &&
+    !Object.values(this.ctRows[0]).some(v => (v ?? '').toString().trim());
+
+  if (onlyOneEmpty) this.ctRows = [];
+
+  const existing = new Set(
+    this.ctRows.map(r => (r.serial_number || '').toUpperCase().trim())
+  );
+
+  let added = 0;
+
+  for (const c of chosen) {
+    const ctno = (c.serial_number || '').trim();
+    if (!ctno || existing.has(ctno.toUpperCase())) continue;
+
+    // fill header + component info from first selected valid device
+    if (!this.header.location_code) {
+      this.header.location_code = c.device?.location_code ?? '';
+    }
+
+    if (!this.header.location_name) {
+      this.header.location_name = c.device?.location_name ?? '';
+    }
+
+    if (!this.testing_bench) {
+      this.testing_bench = c.testing_bench?.bench_name ?? '';
+    }
+
+    if (!this.testing_user) {
+      this.testing_user = c.testing_user?.name ?? '';
+    }
+
+    if (!this.approving_user) {
+      this.approving_user = c.approving_user?.name ?? '';
+    }
+
+    // sync header fields
+    this.header.testing_bench = this.testing_bench || '';
+    this.header.testing_user = this.testing_user || '';
+    this.header.approving_user = this.approving_user || '';
+
+    this.ctRows.push(
+      this.emptyCtRow({
+        serial_number: ctno,
+        make: c.make || '',
+        cap: c.capacity || '',
+        ratio: c.ratio || '',
+        device_id: c.device_id || 0,
+        assignment_id: c.id || 0,
+        notFound: false,
+        testshifts: this.testshifts ?? null
+      })
+    );
+
+    existing.add(ctno.toUpperCase());
+    added++;
+  }
+
+  if (!this.ctRows.length) {
+    this.ctRows.push(this.emptyCtRow());
+  }
+
+  this.header.no_of_ct = this.ctRows
+    .filter(r => (r.serial_number || '').trim())
+    .length.toString();
+
+  if (!this.header.ct_make) {
+    this.header.ct_make = this.ctRows[0]?.make || '';
+  }
+
+  this.assignedPicker.open = false;
+  this.setInlineMsg('success', 'Added', `No of ${added} CT(s) added Sucessfully.`);
+}
 
   onCtNoChanged(i: number, value: string) {
     const key = (value || '').toUpperCase().trim();

@@ -322,13 +322,13 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         this.loadDataWithoutAddingRows(asg);
 
         const first = asg.find(a => a.device);
-        if (first?.device) {
-          this.batch.header.location_code = first.device.location_code ?? '';
-          this.batch.header.location_name = first.device.location_name ?? '';
-          this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
-          this.batch.header.testing_user = first.user_assigned?.name || first.user_assigned?.username || '';
-          this.batch.header.approving_user = first.assigned_by_user?.name || first.assigned_by_user?.username || '';
-        }
+        // if (first?.device) {
+        //   this.batch.header.location_code = first.device.location_code ?? '';
+        //   this.batch.header.location_name = first.device.location_name ?? '';
+        //   this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
+        //   this.batch.header.testing_user = first.user_assigned?.name || first.user_assigned?.username || '';
+        //   this.batch.header.approving_user = first.assigned_by_user?.name || first.assigned_by_user?.username || '';
+        // }
         if (!this.batch.header.phase) {
           const uniq = new Set(asg.map(a => (a.device?.phase || '').toUpperCase()).filter(Boolean));
           this.batch.header.phase = uniq.size === 1 ? [...uniq][0] : '';
@@ -362,13 +362,13 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         this.pickerLoading = false;
 
         const first = list.find(a => a.device);
-        if (first?.device) {
-          this.batch.header.location_code = first.device.location_code ?? '';
-          this.batch.header.location_name = first.device.location_name ?? '';
-          this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
-          this.batch.header.testing_user = first.user_assigned?.name || first.user_assigned?.username || '';
-          this.batch.header.approving_user = first.assigned_by_user?.name || first.assigned_by_user?.username || '';
-        }
+        // if (first?.device) {
+        //   this.batch.header.location_code = first.device.location_code ?? '';
+        //   this.batch.header.location_name = first.device.location_name ?? '';
+        //   this.batch.header.testing_bench = first.testing_bench?.bench_name ?? '';
+        //   this.batch.header.testing_user = first.user_assigned?.name || first.user_assigned?.username || '';
+        //   this.batch.header.approving_user = first.assigned_by_user?.name || first.assigned_by_user?.username || '';
+        // }
 
         this.rebuildSerialIndex(list);
       },
@@ -414,8 +414,13 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
     let added = 0;
     chosen.forEach(a => {
       const d = a.device || ({} as MeterDevice);
-      const serial = (d.serial_number || '').trim();
+      const serial = (d.serial_number || '').trim();   
       if (!serial || existing.has(serial.toUpperCase())) return;
+      if (!this.batch.header.location_code) this.batch.header.location_code = a.device?.location_code ?? '';
+      if (!this.batch.header.location_name) this.batch.header.location_name = a.device?.location_name ?? '';
+      if (!this.batch.header.testing_bench) this.batch.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.batch.header.testing_user) this.batch.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.batch.header.approving_user) this.batch.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
 
       this.batch.rows.push(this.emptyRow({
         serial,

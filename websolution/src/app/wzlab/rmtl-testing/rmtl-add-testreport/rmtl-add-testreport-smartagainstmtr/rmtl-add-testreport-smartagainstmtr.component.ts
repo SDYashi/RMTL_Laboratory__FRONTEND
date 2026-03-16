@@ -287,7 +287,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
           this.rebuildSerialIndex(list);
 
           const first = list.find(a => a.device);
-          this.fillHeaderFromAssignment(first);
+          // this.fillHeaderFromAssignment(first);
 
           this.loading = false;
           this.inlineInfo =  `Total ${list.length} assigned device(s) loaded for Smart Against Meter.`;
@@ -597,7 +597,7 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
           this.rebuildSerialIndex(list);
 
           const first = list.find(a => a.device);
-          this.fillHeaderFromAssignment(first);
+          // this.fillHeaderFromAssignment(first);
         },
         error: () => { this.inlineError = 'Could not load assigned devices.'; }
       });
@@ -641,6 +641,13 @@ export class RmtlAddTestreportSmartagainstmtrComponent implements OnInit {
       const d = a.device!;
       const sr = (d.serial_number || '').trim();
       if (!sr || existing.has(sr.toUpperCase())) continue;
+      if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
+      if (!this.header.location_name) this.header.location_name = a.device?.location_name ?? '';
+      if (!this.header.testing_bench) this.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.header.testing_user) this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.header.approving_user) this.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      if (!this.header.phase && a.device?.phase) this.header.phase = (a.device.phase || '').toUpperCase();
+ 
       newRows.push({
         meter_sr_no: sr,
         meter_make: d.make || '',

@@ -188,16 +188,6 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
   alertSuccess: string | null = null;
   alertError: string | null = null;
 
-  // alert modal
-  alert = {
-    open: false,
-    type: 'info' as 'success' | 'error' | 'warning' | 'info',
-    title: '',
-    message: '',
-    autoCloseMs: 0 as number | 0,
-    _t: 0 as any
-  };
-
   // device picker modal
   devicePicker = {
     open: false,
@@ -449,34 +439,34 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
         asg.sort((a, b) => (a.device?.make || '').localeCompare(b.device?.make || ''));
         this.rebuildSerialIndex(asg);
 
-        const first = asg.find(a => a.device);
-        if (first?.device) {
-          // Zone / DC
-          this.header.location_code = first.device.location_code ?? this.header.location_code ?? '';
-          this.header.location_name = first.device.location_name ?? this.header.location_name ?? '';
+        // const first = asg.find(a => a.device);
+        // if (first?.device) {
+        //   // Zone / DC
+        //   this.header.location_code = first.device.location_code ?? this.header.location_code ?? '';
+        //   this.header.location_name = first.device.location_name ?? this.header.location_name ?? '';
 
-          // Bench name
-          this.header.testing_bench = first.testing_bench?.bench_name || '-';
+        //   // Bench name
+        //   this.header.testing_bench = first.testing_bench?.bench_name || '-';
 
-          // Testing user (prefer full name, then username)
-          this.header.testing_user =
-            first.user_assigned?.name ||
-            first.user_assigned?.username ||
-            '-';
+        //   // Testing user (prefer full name, then username)
+        //   this.header.testing_user =
+        //     first.user_assigned?.name ||
+        //     first.user_assigned?.username ||
+        //     '-';
 
-          // Approving user (prefer full name, then username)
-          this.header.approving_user =
-            first.assigned_by_user?.name ||
-            first.assigned_by_user?.username ||
-            '-';
+        //   // Approving user (prefer full name, then username)
+        //   this.header.approving_user =
+        //     first.assigned_by_user?.name ||
+        //     first.assigned_by_user?.username ||
+        //     '-';
        
-          // Phase (if device has it)
-          if (first.device.phase) {
-            this.header.phase = (first.device.phase || '').toUpperCase();
-          }
-             this.testing_requester_name =this.header.location_code + ' - ' + this.header.location_name || '';
+        //   // Phase (if device has it)
+        //   if (first.device.phase) {
+        //     this.header.phase = (first.device.phase || '').toUpperCase();
+        //   }
+        //      this.testing_requester_name =this.header.location_code + ' - ' + this.header.location_name || '';
 
-        }
+        // }
 
         this.loading = false;
         this.setPageMessage(
@@ -601,6 +591,14 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
       const d = a.device || ({} as MeterDevice);
       const serial = (d.serial_number || '').toUpperCase().trim();
       if (!serial || existingSerials.has(serial)) continue;
+      if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
+      if (!this.header.location_name) this.header.location_name = a.device?.location_name ?? '';
+      if (!this.header.testing_bench) this.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.header.testing_user) this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.header.approving_user) this.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      if (!this.header.phase && a.device?.phase) this.header.phase = (a.device.phase || '').toUpperCase();
+ 
+
 
       this.rows.push(
         this.emptyRow({
@@ -863,19 +861,14 @@ export class RmtlAddTestreportP4vigComponent implements OnInit {
 async doSubmit() {
   const payload = this.buildPayload();
   if (!payload.length) {
+    this.alertSuccess = null;
     this.alertError = 'No valid rows to submit.';
-    this.openAlert(
-      'warning',
-      'Nothing to submit',
-      'Please add at least one valid row.'
-    );
     return;
   }
 
   this.submitting = true;
   this.alertSuccess = null;
   this.alertError = null;
-  this.openAlert('info', 'Submitting…', 'Saving data to server.');
 
   this.api.postTestReports(payload).subscribe({
     next: async () => {
@@ -889,7 +882,7 @@ async doSubmit() {
         date: new Date().toISOString().slice(0, 10),
         testing_bench: this.header.testing_bench || '-',
         testing_user: this.header.testing_user || '-',
-
+        approving_user: this.header.approving_user || '-',
         lab_name: this.labInfo?.lab_name || null,
         lab_address: this.labInfo?.address || null,
         lab_email: this.labInfo?.email || null,
@@ -898,7 +891,6 @@ async doSubmit() {
         rightLogoUrl: this.labInfo?.logo_right_url || '/assets/icons/wzlogo.png'
       };
 
-      // build full PDF rows for the contested (VIG) report
       const rows: VigRow[] = (this.rows || [])
         .filter(r => (r.serial || '').trim())
         .map(r => ({
@@ -908,7 +900,6 @@ async doSubmit() {
           removal_reading: this.numOrNull(r.removal_reading) ?? undefined,
           test_result: r.test_result,
 
-          // Consumer / seizure info
           consumer_name: r.consumer_name,
           address: r.address,
           account_number: r.account_number,
@@ -917,7 +908,6 @@ async doSubmit() {
           panchanama_date: r.panchanama_date,
           condition_at_removal: r.condition_at_removal,
 
-          // Physical condition
           testing_date: r.testing_date,
           is_burned: !!r.is_burned,
           seal_status: r.seal_status,
@@ -926,7 +916,6 @@ async doSubmit() {
           meter_body: r.meter_body,
           other: r.other,
 
-          // Test/meter type selections
           test_type: r.view_mode === 'BOTH'
             ? 'BOTH'
             : (r.view_mode === 'SHUNT'
@@ -934,11 +923,8 @@ async doSubmit() {
                 : (r.view_mode === 'NUTRAL'
                     ? 'NEUTRAL'
                     : undefined)),
-          // if you actually collect meter type somewhere in UI, map it here;
-          // leaving undefined won't break PDF
           meter_type: undefined,
 
-          // Shunt set
           shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
           shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
           shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
@@ -948,7 +934,6 @@ async doSubmit() {
           shunt_creep_test: r.shunt_creep_test || null,
           shunt_dail_test: r.shunt_dail_test || null,
 
-          // Neutral set
           nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
           nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
           nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
@@ -958,7 +943,6 @@ async doSubmit() {
           nutral_creep_test: r.nutral_creep_test || null,
           nutral_dail_test: r.nutral_dail_test || null,
 
-          // Import / Export / calc
           start_reading_import: null,
           final_reading_import: null,
           difference_import: null,
@@ -969,7 +953,6 @@ async doSubmit() {
           error_percentage_import: this.numOrNull(r.error_percentage_import),
           error_percentage_export: null,
 
-          // Lab / accounting / misc
           certificate_number: undefined,
           testing_fees: undefined,
           fees_mr_no: undefined,
@@ -981,13 +964,11 @@ async doSubmit() {
           dail_test_kwh_rsm: null,
           recorderedbymeter_kwh: null,
 
-          // P4 section-ish
           p4_division: r.division_zone,
           p4_no: r.panchanama_no,
           p4_date: r.panchanama_date,
           p4_metercodition: r.condition_at_removal,
 
-          // Remarks
           final_remarks: r.final_remarks || '',
           approver_remark: undefined,
           dial_testby: undefined,
@@ -995,58 +976,27 @@ async doSubmit() {
           remark: r.remark || ''
         }));
 
-      this.openAlert('success', 'Saved', 'Data saved. Generating PDF…', 1200);
+      this.alertSuccess = 'Data saved successfully. Generating PDF...';
+      this.alertError = null;
 
       await this.pdfSvc.download(header, rows);
 
       this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
-      this.openAlert(
-        'success',
-        'Completed',
-        'PDF downloaded to your device.',
-        1600
-      );
+      this.alertError = null;
 
-      // reset for next batch
       this.rows = [this.emptyRow()];
       setTimeout(() => this.closeModal(), 1000);
     },
     error: (e) => {
       console.error(e);
       this.submitting = false;
-      this.alertError = 'Error submitting batch.';
-      this.openAlert(
-        'error',
-        'Submission failed',
-        'Something went wrong while submitting the batch.'
-      );
+      this.alertSuccess = null;
+      this.alertError = 'Something went wrong while submitting the batch.';
     }
   });
 }
 
 
-  // ===== alert helpers =====
-  openAlert(
-    type: 'success' | 'error' | 'warning' | 'info',
-    title: string,
-    message: string,
-    autoCloseMs: number = 0
-  ) {
-    if (this.alert._t) {
-      clearTimeout(this.alert._t as any);
-    }
-    this.alert = { open: true, type, title, message, autoCloseMs, _t: 0 };
-    if (autoCloseMs > 0) {
-      this.alert._t = setTimeout(() => this.closeAlert(), autoCloseMs);
-    }
-  }
-
-  closeAlert() {
-    if (this.alert._t) {
-      clearTimeout(this.alert._t as any);
-    }
-    this.alert.open = false;
-  }
 
   // ===== page-level message =====
   setPageMessage(

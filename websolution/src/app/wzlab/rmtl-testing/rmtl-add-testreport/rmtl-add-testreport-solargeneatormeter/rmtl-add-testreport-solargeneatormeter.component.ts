@@ -10,6 +10,7 @@ interface MeterDevice {
   capacity?: string;
   location_code?: string | null;
   location_name?: string | null;
+  phase?: string;
 }
 interface AssignmentItem {
   id: number;           // assignment_id
@@ -100,7 +101,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
   };
 
   // ===== header on form
-  header = { location_code: '', location_name: '' , testing_bench: '', testing_user: '', approving_user: ''};
+  header = { location_code: '', location_name: '' , testing_bench: '', testing_user: '', approving_user: '', phase: '' };
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
@@ -376,27 +377,27 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
 
         this.rebuildSerialIndex(asg);
 
-        const first = asg.find(a => a.device);
-        if (first?.device){
-          this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
-          this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
-          this.testing_bench = (this.testing_bench && this.testing_bench !== '-') ? this.testing_bench : (first.testing_bench?.bench_name ?? '-');
-          this.testing_user  = (this.testing_user  && this.testing_user  !== '-') ? this.testing_user  : (first.user_assigned?.name  || '-');
-          this.approver_user = (this.approver_user && this.approver_user !== '-') ? this.approver_user : (first.assigned_by_user?.name  || '-');
+        // const first = asg.find(a => a.device);
+        // if (first?.device){
+        //   this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
+        //   this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
+        //   this.testing_bench = (this.testing_bench && this.testing_bench !== '-') ? this.testing_bench : (first.testing_bench?.bench_name ?? '-');
+        //   this.testing_user  = (this.testing_user  && this.testing_user  !== '-') ? this.testing_user  : (first.user_assigned?.name  || '-');
+        //   this.approver_user = (this.approver_user && this.approver_user !== '-') ? this.approver_user : (first.assigned_by_user?.name  || '-');
           
-          // Testing bench
-          this.header.testing_bench = first.testing_bench?.bench_name || '-';
-          // Testing user (prefer full name, then username)
-          this.header.testing_user =
-            first.user_assigned?.name ||
-            first.user_assigned?.username ||
-            '-';
-          // Approving user (prefer full name, then username)
-          this.header.approving_user =
-            first.assigned_by_user?.name ||
-            first.assigned_by_user?.username ||
-            '-';
-        }
+        //   // Testing bench
+        //   this.header.testing_bench = first.testing_bench?.bench_name || '-';
+        //   // Testing user (prefer full name, then username)
+        //   this.header.testing_user =
+        //     first.user_assigned?.name ||
+        //     first.user_assigned?.username ||
+        //     '-';
+        //   // Approving user (prefer full name, then username)
+        //   this.header.approving_user =
+        //     first.assigned_by_user?.name ||
+        //     first.assigned_by_user?.username ||
+        //     '-';
+        // }
 
         if (replaceRows) {
           this.rows = asg.map(a => {
@@ -455,6 +456,14 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
     }
     const newRows = chosen.map(a => {
       const d = a.device || ({} as MeterDevice);
+      if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
+      if (!this.header.location_name) this.header.location_name = a.device?.location_name ?? '';
+      if (!this.header.testing_bench) this.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.header.testing_user) this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.header.approving_user) this.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      if (!this.header.phase && a.device?.phase) this.header.phase = (a.device.phase || '').toUpperCase();
+ 
+
       return this.emptyRow({
         meter_sr_no: d.serial_number || '',
         meter_make: d.make || '',

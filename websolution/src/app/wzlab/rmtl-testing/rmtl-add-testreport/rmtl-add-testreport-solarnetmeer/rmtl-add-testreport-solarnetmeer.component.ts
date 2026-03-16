@@ -15,6 +15,7 @@ interface MeterDevice {
   capacity?: string;
   location_code?: string | null;
   location_name?: string | null;
+  phase?: string | null;
 }
 interface AssignmentItem {
   id: number; // assignment_id
@@ -135,7 +136,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     testing_bench: '-',
     testing_user: '-',
     approving_user: '-',
-    date: '-' // NOTE: remains '-', but PDF will not crash now
+    date: '-' ,
+    phase: '-' 
   };
 
   test_methods: any[] = [];
@@ -551,30 +553,30 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
           this.rebuildSerialIndex(asg);
 
-          const first = asg.find((a) => a.device);
-          if (first?.device) {
-            this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
-            this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
+          // const first = asg.find((a) => a.device);
+          // if (first?.device) {
+          //   this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
+          //   this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
 
-            this.header.testing_bench =
-              this.header.testing_bench && this.header.testing_bench !== '-'
-                ? this.header.testing_bench
-                : first.testing_bench?.bench_name ?? '-';
+          //   this.header.testing_bench =
+          //     this.header.testing_bench && this.header.testing_bench !== '-'
+          //       ? this.header.testing_bench
+          //       : first.testing_bench?.bench_name ?? '-';
 
-            this.header.testing_user =
-              this.header.testing_user && this.header.testing_user !== '-'
-                ? this.header.testing_user
-                : first.user_assigned?.name ?? first.user_assigned?.username ?? '-';
+          //   this.header.testing_user =
+          //     this.header.testing_user && this.header.testing_user !== '-'
+          //       ? this.header.testing_user
+          //       : first.user_assigned?.name ?? first.user_assigned?.username ?? '-';
 
-            this.header.approving_user =
-              this.header.approving_user && this.header.approving_user !== '-'
-                ? this.header.approving_user
-                : first.assigned_by_user?.name ?? first.assigned_by_user?.username ?? '-';
+          //   this.header.approving_user =
+          //     this.header.approving_user && this.header.approving_user !== '-'
+          //       ? this.header.approving_user
+          //       : first.assigned_by_user?.name ?? first.assigned_by_user?.username ?? '-';
 
-            this.testing_bench = this.header.testing_bench;
-            this.testing_user = this.header.testing_user;
-            this.approving_user = this.header.approving_user;
-          }
+          //   this.testing_bench = this.header.testing_bench;
+          //   this.testing_user = this.header.testing_user;
+          //   this.approving_user = this.header.approving_user;
+          // }
 
           this.asgPicker.list = asg;
           this.loading = false;
@@ -923,6 +925,14 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
     const newRows = chosen.map((a) => {
       const d = a.device || ({} as MeterDevice);
+      if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
+      if (!this.header.location_name) this.header.location_name = a.device?.location_name ?? '';
+      if (!this.header.testing_bench) this.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      if (!this.header.testing_user) this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      if (!this.header.approving_user) this.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      if (!this.header.phase && a.device?.phase) this.header.phase = (a.device.phase || '').toUpperCase();
+ 
+
       return this.emptyRow({
         meter_sr_no: d.serial_number || '',
         meter_make: d.make || '',

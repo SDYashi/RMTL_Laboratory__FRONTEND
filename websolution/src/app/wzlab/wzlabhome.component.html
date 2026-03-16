@@ -301,11 +301,11 @@
         </button>
 
         <div class="collapse"
-             [class.show]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass'])"
+             [class.show]="sections['receivedDispatch'] || isRouteActive(['/wzlab/devices', '/wzlab/getpass' ])"
              id="receivedDispatch">
           <div class="submenu d-flex flex-column">
             <a class="submenu-link px-4 py-2 text-white-50 text-decoration-none"
-               *ngIf="canShow(['ADMIN','TESTING_ASSISTANT','STORE_INCHARGE','SUPERITENDING_ENGINEER'])"
+              *ngIf="canShow(['ADMIN','TESTING_ASSISTANT','SUPERITENDING_ENGINEER','EXECUTIVE','OFFICER_INCHARGE','STORE_INCHARGE'])"
                routerLink="/wzlab/dashboard/store-dashboard"
                routerLinkActive="active"
                (click)="onSidebarLinkClick($event)">
