@@ -6,36 +6,36 @@
 
     <div class="card-body">
 
-      <!-- Top toolbar -->
       <div class="d-flex flex-wrap gap-2 mb-3 d-print-none">
         <button type="button" class="btn btn-outline-danger" (click)="openAssignedPicker()">
           ⟳ Select/Pick Assigned Meters for Testing
         </button>
       </div>
 
-      <!-- Batch header -->
       <div class="card shadow-sm mb-3 border-0">
         <div class="card-body bg-secondary bg-opacity-10">
           <div class="row g-3">
-           <div class="col-12 col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-bold mt-2"> Name of Zone/DC</label>
               <input class="form-control" [(ngModel)]="header.location_name" name="loc_name" readonly disabled>
             </div>
-           <div class="col-12 col-md-4">
+
+            <div class="col-12 col-md-4">
               <label class="form-label fw-bold mt-2">Selected Testing Bench</label>
               <input class="form-control" [(ngModel)]="header.testing_bench" name="testing_bench" placeholder="e.g., zera_one" readonly disabled>
             </div>
-           <div class="col-12 col-md-4">
+
+            <div class="col-12 col-md-4">
               <label class="form-label fw-bold mt-2">Selected Testing User</label>
               <input class="form-control" [(ngModel)]="header.testing_user" name="testing_user" placeholder="e.g., Admin" readonly disabled>
             </div>
-           <div class="col-12 col-md-3">
+
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold mt-2">Selected Approving User</label>
               <input class="form-control" [(ngModel)]="header.approving_user" name="approving_user" placeholder="e.g., JE / AE" readonly disabled>
-            </div>           
-                     
-            
-          <div class="col-12 col-md-3">
+            </div>
+
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold">Select Working Shift <span class="text-danger">*</span></label>
               <select class="form-select" [(ngModel)]="testshifts" name="testshifts" required>
                 <option [ngValue]="null">-- Select Testing Shift --</option>
@@ -43,17 +43,18 @@
               </select>
             </div>
 
-           <div class="col-12 col-md-3">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold mt-2">Select Test Method</label>
               <select class="form-select" [(ngModel)]="testMethod" name="test_method">
-                 <option [ngValue]="null" disabled>-- Select Test Method --</option>
+                <option [ngValue]="null" disabled>-- Select Test Method --</option>
                 <option *ngFor="let m of test_methods" [value]="m">{{ m }}</option>
               </select>
             </div>
-          <div class="col-12 col-md-3">
+
+            <div class="col-12 col-md-3">
               <label class="form-label fw-bold mt-2">Select Test Status</label>
               <select class="form-select" [(ngModel)]="testStatus" name="test_status">
-                  <option [ngValue]="null" disabled>-- Select Test Status --</option>
+                <option [ngValue]="null" disabled>-- Select Test Status --</option>
                 <option *ngFor="let s of test_statuses" [value]="s">{{ s }}</option>
               </select>
             </div>
@@ -61,7 +62,6 @@
         </div>
       </div>
 
-      <!-- Main table -->
       <div class="table-responsive mb-3 d-print-none">
         <table class="table table-hover table-bordered align-middle table-sm mb-0 d-print-none">
           <thead class="text-center sticky-top bg-light" style="top:0; z-index:1;">
@@ -109,10 +109,6 @@
                     <option *ngFor="let tr of test_results" [ngValue]="tr">{{ tr }}</option>
                   </select>
                 </td>
-<!-- 
-                <td style="min-width:220px">
-                  <input class="form-control" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
-                </td> -->
 
                 <td class="text-center d-print-none">
                   <button type="button" class="btn btn-sm btn-outline-primary" (click)="r._open=!r._open">
@@ -125,52 +121,55 @@
                 </td>
               </tr>
 
-              <!-- expanded editor -->
               <tr *ngIf="r._open">
                 <td colspan="9">
                   <div class="fw-bold p-2 bg-secondary text-white">Solar NetMeter Details</div>
                   <div class="row g-3 p-2 bg-secondary bg-opacity-10">
-                    <!-- Core meta -->
+
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Certificate No (optional)</label>
                       <input class="form-control" [(ngModel)]="r.certificate_no" [name]="'cert_'+i">
                     </div>
+
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Consumer Name</label>
-                       <input class="form-control" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
+                      <input class="form-control" [(ngModel)]="r.consumer_name" [name]="'cons_'+i">
                     </div>
+
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Select Date of Testing</label>
                       <input type="date" class="form-control" [(ngModel)]="r.date_of_testing" [name]="'dot_'+i">
                     </div>
+
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Full Address</label>
                       <input class="form-control" [(ngModel)]="r.address" [name]="'addr_'+i">
                     </div>
 
-                    <!-- Fees -->
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Select Testing Fees (₹)</label>
                       <select class="form-select" [(ngModel)]="r.testing_fees" [name]="'fees_'+i">
-                          <option value="null" disabled>Select Testing Fees</option>
+                        <option value="null" disabled>Select Testing Fees</option>
                         <option *ngFor="let fee of fees_mtr_cts" [ngValue]="fee">{{ fee }}</option>
                       </select>
                     </div>
+
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">M.R. No / Online Txn No</label>
                       <input class="form-control" [(ngModel)]="r.mr_no" [name]="'mr_'+i" placeholder="Receipt / Online Txn No">
                     </div>
+
                     <div class="col-md-4">
                       <label class="form-label fw-bold mb-0">Select Date of Payment</label>
                       <input type="date" class="form-control" [(ngModel)]="r.mr_date" [name]="'mrd_'+i">
                     </div>
+
                     <div class="col-md-8">
                       <label class="form-label fw-bold mb-0">Payment Reference Details (if any)</label>
                       <input class="form-control" [(ngModel)]="r.ref_no" [name]="'ref_'+i">
                     </div>
 
-                    <!-- Device physical condition block -->
-                    <div class="col-12">
+                    <div class="col-12" *ngIf="!isSmartSolarMeter(r)" >
                       <div class="p-3 border rounded bg-secondary bg-opacity-10">
                         <div class="fw-bold mb-2 p-2 bg-secondary text-white">Physical Condition / Visual Checks</div>
                         <div class="row g-3 p-2">
@@ -217,12 +216,10 @@
                       </div>
                     </div>
 
-                    <!-- Import section -->
-                    <div class="col-12">
-                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                    <div class="col-12" *ngIf="!isSmartSolarMeter(r)">
+                                            <div class="p-3 border rounded bg-secondary bg-opacity-10">
                         <div class="fw-bold mb-2 p-2 bg-secondary text-white">Import Readings</div>
                         <div class="row g-3 p-2">
-                          <!-- Meter -->
                           <div class="col-md-3">
                             <label class="form-label fw-bold mb-0">Starting Reading (Import)</label>
                             <input type="number" class="form-control"
@@ -241,8 +238,8 @@
                                    [(ngModel)]="r.difference__import" [name]="'imp_diff_'+i" step="0.0001" readonly>
                           </div>
 
-                          <!-- Reference -->
                           <div class="col-12"><hr class="my-1"></div>
+
                           <div class="col-md-3">
                             <label class="form-label fw-bold mb-0">Reference Starting Reading (Import)</label>
                             <input type="number" class="form-control"
@@ -270,12 +267,10 @@
                       </div>
                     </div>
 
-                    <!-- Export section -->
-                    <div class="col-12">
+                    <div class="col-12" *ngIf="!isSmartSolarMeter(r)">
                       <div class="p-3 border rounded bg-secondary bg-opacity-10">
                         <div class="fw-bold mb-2 p-2 bg-secondary text-white">Export Readings</div>
                         <div class="row g-3 p-2">
-                          <!-- Meter -->
                           <div class="col-md-3">
                             <label class="form-label fw-bold mb-0">Starting Reading (Export)</label>
                             <input type="number" class="form-control"
@@ -294,8 +289,8 @@
                                    [(ngModel)]="r.difference_export" [name]="'exp_diff_'+i" step="0.0001" readonly>
                           </div>
 
-                          <!-- Reference -->
                           <div class="col-12"><hr class="my-1"></div>
+
                           <div class="col-md-3">
                             <label class="form-label fw-bold mb-0">Reference Starting Reading (Export)</label>
                             <input type="number" class="form-control"
@@ -323,9 +318,8 @@
                       </div>
                     </div>
 
-                    <!-- SHUNT / NUTRAL readings sections -->
                     <div class="col-12">
-                      <div class="p-3 border rounded bg-secondary bg-opacity-10"> 
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
                         <div class="row g-3 p-2">
                           <div class="col-md-4">
                             <label class="form-label fw-bold mb-0"> Current Test Result</label>
@@ -352,8 +346,149 @@
                       </div>
                     </div>
 
-                    <!-- Final summary -->
-                    <div class="col-md-3">
+                    <div class="col-12" *ngIf="isSmartSolarMeter(r)">
+                      <div class="p-3 border rounded bg-secondary bg-opacity-10">
+                        <div class="fw-bold mb-2 p-2 bg-secondary text-white">
+                          Smart Meter Additional Parameters
+                        </div>
+
+                        <div class="row g-3 p-2">
+                          <div class="col-12"><div class="fw-bold text-primary">IMPORT - UPF</div></div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">UPF 100% IMAX</label>
+                            <input class="form-control" [(ngModel)]="r.import_upf_100_imax" [name]="'import_upf_100_imax_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">UPF 100% IB</label>
+                            <input class="form-control" [(ngModel)]="r.import_upf_100_ib" [name]="'import_upf_100_ib_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">UPF 5% IB</label>
+                            <input class="form-control" [(ngModel)]="r.import_upf_5_ib" [name]="'import_upf_5_ib_'+i">
+                          </div>
+
+                          <div class="col-12"><div class="fw-bold text-primary">IMPORT - 0.5 LAG</div></div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.5 LAG 100% IMAX</label>
+                            <input class="form-control" [(ngModel)]="r.import_lag_05_100_imax" [name]="'import_lag_05_100_imax_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.5 LAG 100% IB</label>
+                            <input class="form-control" [(ngModel)]="r.import_lag_05_100_ib" [name]="'import_lag_05_100_ib_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.5 LAG 10% IB</label>
+                            <input class="form-control" [(ngModel)]="r.import_lag_05_10_ib" [name]="'import_lag_05_10_ib_'+i">
+                          </div>
+
+                          <div class="col-12"><div class="fw-bold text-primary">IMPORT - 0.8 LEAD</div></div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.8 LEAD 100% IMAX</label>
+                            <input class="form-control" [(ngModel)]="r.import_lead_08_100_imax" [name]="'import_lead_08_100_imax_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.8 LEAD 100% IB</label>
+                            <input class="form-control" [(ngModel)]="r.import_lead_08_100_ib" [name]="'import_lead_08_100_ib_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.8 LEAD 10% IB</label>
+                            <input class="form-control" [(ngModel)]="r.import_lead_08_10_ib" [name]="'import_lead_08_10_ib_'+i">
+                          </div>
+
+                          <div class="col-12"><div class="fw-bold text-success">EXPORT - UPF</div></div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">UPF 100% IMAX</label>
+                            <input class="form-control" [(ngModel)]="r.export_upf_100_imax" [name]="'export_upf_100_imax_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">UPF 100% IB</label>
+                            <input class="form-control" [(ngModel)]="r.export_upf_100_ib" [name]="'export_upf_100_ib_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">UPF 5% IB</label>
+                            <input class="form-control" [(ngModel)]="r.export_upf_5_ib" [name]="'export_upf_5_ib_'+i">
+                          </div>
+
+                          <div class="col-12"><div class="fw-bold text-success">EXPORT - 0.5 LAG</div></div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.5 LAG 100% IMAX</label>
+                            <input class="form-control" [(ngModel)]="r.export_lag_05_100_imax" [name]="'export_lag_05_100_imax_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.5 LAG 100% IB</label>
+                            <input class="form-control" [(ngModel)]="r.export_lag_05_100_ib" [name]="'export_lag_05_100_ib_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.5 LAG 10% IB</label>
+                            <input class="form-control" [(ngModel)]="r.export_lag_05_10_ib" [name]="'export_lag_05_10_ib_'+i">
+                          </div>
+
+                          <div class="col-12"><div class="fw-bold text-success">EXPORT - 0.8 LEAD</div></div>
+
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.8 LEAD 100% IMAX</label>
+                            <input class="form-control" [(ngModel)]="r.export_lead_08_100_imax" [name]="'export_lead_08_100_imax_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.8 LEAD 100% IB</label>
+                            <input class="form-control" [(ngModel)]="r.export_lead_08_100_ib" [name]="'export_lead_08_100_ib_'+i">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">0.8 LEAD 10% IB</label>
+                            <input class="form-control" [(ngModel)]="r.export_lead_08_10_ib" [name]="'export_lead_08_10_ib_'+i">
+                          </div>
+
+                          <div class="col-12"><div class="fw-bold text-dark">DIAL TEST</div></div>
+
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial SR Import</label>
+                            <input class="form-control" [(ngModel)]="r.dial_sr_import" [name]="'dial_sr_import_'+i">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial SR Export</label>
+                            <input class="form-control" [(ngModel)]="r.dial_sr_export" [name]="'dial_sr_export_'+i">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial FR Import</label>
+                            <input class="form-control" [(ngModel)]="r.dial_fr_import" [name]="'dial_fr_import_'+i">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial FR Export</label>
+                            <input class="form-control" [(ngModel)]="r.dial_fr_export" [name]="'dial_fr_export_'+i">
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial Dosage Import</label>
+                            <input class="form-control" [(ngModel)]="r.dial_dosage_import" [name]="'dial_dosage_import_'+i">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial Dosage Export</label>
+                            <input class="form-control" [(ngModel)]="r.dial_dosage_export" [name]="'dial_dosage_export_'+i">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial Result Import</label>
+                            <input class="form-control" [(ngModel)]="r.dial_result_import" [name]="'dial_result_import_'+i">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label fw-bold mb-0">Dial Result Export</label>
+                            <input class="form-control" [(ngModel)]="r.dial_result_export" [name]="'dial_result_export_'+i">
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label fw-bold mb-0">Net Imp Export</label>
+                            <input class="form-control" [(ngModel)]="r.net_imp_export" [name]="'net_imp_export_'+i">
+                          </div>
+                         
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3" *ngIf="!isSmartSolarMeter(r)" >
                       <label class="form-label fw-bold mb-0">Final Difference (I − E)</label>
                       <input type="number" class="form-control"
                              [(ngModel)]="r.final_Meter_Difference" [name]="'final_diff_'+i" step="0.0001" readonly>
@@ -363,6 +498,7 @@
                       <label class="form-label fw-bold mb-0">Final Remark / Observation</label>
                       <textarea rows="2" class="form-control" [(ngModel)]="r.final_remarks" [name]="'final_remarks'+i"></textarea>
                     </div>
+
                   </div>
                 </td>
               </tr>
@@ -371,11 +507,10 @@
         </table>
       </div>
 
-      <!-- Actions -->
       <div class="d-flex gap-2 mt-3 d-print-none">
         <button type="button" class="btn btn-outline-primary" (click)="addRow()">➕ Add Row</button>
         <div class="ms-auto d-flex gap-2">
-          <button  type="button" class="btn btn-primary" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
+          <button type="button" class="btn btn-primary" [disabled]="submitting || !rows.length" (click)="openConfirm('submit')">
             {{ submitting ? 'Submitting…' : 'Validate & Preview' }}
           </button>
         </div>
@@ -383,8 +518,6 @@
     </div>
   </div>
 
-
-  <!-- Inline banner -->
   <div *ngIf="banner.show"
        class="alert d-print-none"
        [ngClass]="{
@@ -399,7 +532,6 @@
     </div>
   </div>
 
-  <!-- Overlay -->
   <div *ngIf="loading" class="position-fixed top-0 start-0 w-100 h-100"
        style="background:rgba(0,0,0,0.15); z-index:1080;">
     <div class="d-flex h-100 align-items-center justify-content-center">
@@ -408,7 +540,6 @@
     </div>
   </div>
 
-  <!-- Submit Preview Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modal.open}" *ngIf="modal.open">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -462,7 +593,6 @@
     </div>
   </div>
 
-  <!-- Assigned Picker Modal -->
   <div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': asgPicker.open}" *ngIf="asgPicker.open">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">

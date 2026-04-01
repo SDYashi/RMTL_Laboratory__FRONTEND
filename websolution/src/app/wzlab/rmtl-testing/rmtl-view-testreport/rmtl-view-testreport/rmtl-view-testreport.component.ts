@@ -17,7 +17,11 @@ import { SmartAgainstMeterReportPdfService, SmartRow, SmartMeta } from 'src/app/
 import { SolarGenMeterCertificatePdfService, GenRow, GenHeader } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 import { SolarNetMeterCertificatePdfService, SolarRow, SolarHeader } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
 import { StopDefectiveReportPdfService, StopDefRow, StopDefMeta } from 'src/app/shared/stopdefective-report-pdf.service';
-
+import {
+  SolarNetMeterCertificatePdfService_1,
+  SolarHeader as SmartSolarHeader,
+  SolarRow as SmartSolarRow
+} from 'src/app/shared/solarnetmeter-certificate-pdf.service_smart';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 type DeviceType = any;
@@ -46,6 +50,7 @@ export class RmtlViewTestreportComponent implements OnInit {
     private smartmeterPdf: SmartAgainstMeterReportPdfService,
     private solarGenPdf: SolarGenMeterCertificatePdfService,
     private solarNetPdf: SolarNetMeterCertificatePdfService,
+    private solarNetSmartPdf: SolarNetMeterCertificatePdfService_1,
     private stopDefPdf: StopDefectiveReportPdfService,
     private newPdf: NewMeterReportPdfService,
     private samplePdf: SampleMeterReportPdfService,
@@ -94,7 +99,15 @@ export class RmtlViewTestreportComponent implements OnInit {
       error: (err) => console.error('Failed to load report types:', err)
     });
   }
+private isSmartSolarNetMeter(rec: any): boolean {
+  const meterType = (
+    rec?.device?.meter_type ??
+    rec?.testing?.meter_type ??
+    ''
+  ).toString().trim().toUpperCase();
 
+  return meterType === 'SMART METER';
+}
   // ===== UPDATED: cached username lookup =====
   async getUserNameById(id: number): Promise<string> {
     if (!id && id !== 0) return '';
@@ -681,16 +694,12 @@ const mapSOLAR_GEN = (rec: any) => {
 };
 
 
-  const mapSOLAR_NET = (rec: any) => {
+const mapSOLAR_NET_NORMAL = (rec: any) => {
   const t = rec?.testing ?? {};
   const d = rec?.device ?? {};
   const ISO_DATE = (v: any) => S(v).slice(0, 10);
 
   return {
-    // device / consumer
-    device_id: t.device_id ?? 0,
-    assignment_id: t.assignment_id ?? 0,
-
     certificate_no: S(t.certificate_number),
     consumer_name: S(t.consumer_name),
     address: S(t.consumer_address),
@@ -699,16 +708,18 @@ const mapSOLAR_GEN = (rec: any) => {
     meter_sr_no: S(d.serial_number),
     meter_capacity: S(d.capacity),
 
-    // dates
     date_of_testing: ISO_DATE(t.start_datetime || t.end_datetime),
 
-    // fees (NOTE: in payload you send testing_fees as string; keep string for view/pdf)
     testing_fees: t.testing_fees ?? null,
     mr_no: S(t.fees_mr_no),
     mr_date: S(t.fees_mr_date),
     ref_no: S(t.ref_no),
 
-    // import/export readings (payload exact keys)
+    starting_reading: N(t.reading_before_test),
+    final_reading_r: N(t.reading_after_test),
+    final_reading_e: undefined,
+    difference: undefined,
+
     start_reading_import: N(t.start_reading_import),
     final_reading__import: N(t.final_reading__import),
     difference__import: N(t.difference__import),
@@ -717,53 +728,35 @@ const mapSOLAR_GEN = (rec: any) => {
     final_reading_export: N(t.final_reading_export),
     difference_export: N(t.difference_export),
 
-    // ref readings (payload exact keys)
     import_ref_start_reading: N(t.import_ref_start_reading),
     import_ref_end_reading: N(t.import_ref_end_reading),
     export_ref_start_reading: N(t.export_ref_start_reading),
     export_ref_end_reading: N(t.export_ref_end_reading),
 
-    // final diff & errors
     final_Meter_Difference: N(t.final_Meter_Difference),
     error_percentage_import: N(t.error_percentage_import),
     error_percentage_export: N(t.error_percentage_export),
 
-    // SHUNT block (payload exact keys)
     shunt_reading_before_test: N(t.shunt_reading_before_test),
     shunt_reading_after_test: N(t.shunt_reading_after_test),
     shunt_ref_start_reading: N(t.shunt_ref_start_reading),
     shunt_ref_end_reading: N(t.shunt_ref_end_reading),
     shunt_error_percentage: N(t.shunt_error_percentage),
 
-    shunt_current_test: S(t.shunt_current_test),
-    shunt_creep_test: S(t.shunt_creep_test),
-    shunt_dail_test: S(t.shunt_dail_test),
-
-    // NUTRAL block (payload exact keys)
     nutral_reading_before_test: N(t.nutral_reading_before_test),
     nutral_reading_after_test: N(t.nutral_reading_after_test),
     nutral_ref_start_reading: N(t.nutral_ref_start_reading),
     nutral_ref_end_reading: N(t.nutral_ref_end_reading),
     nutral_error_percentage: N(t.nutral_error_percentage),
 
-    nutral_current_test: S(t.nutral_current_test),
-    nutral_creep_test: S(t.nutral_creep_test),
-    nutral_dail_test: S(t.nutral_dail_test),
-
-    // for old PDF fields (if your Solar PDF template expects these 3 combined)
     starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
     creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
     dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
 
-    // remarks/result/method/status/requester
-    remark: S(t.final_remarks || t.details || ''),
-    final_remarks: S(t.final_remarks),
     test_result: S(t.test_result),
-    test_method: S(t.test_method),
-    test_status: S(t.test_status),
-    test_requester_name: S(t.test_requester_name),
+    remark: S(t.final_remarks || t.details || ''),
+    final_remark: S(t.final_remarks),
 
-    // physical condition fields (if PDF shows these)
     physical_condition_of_device: S(t.physical_condition_of_device),
     seal_status: S(t.seal_status),
     meter_glass_cover: S(t.meter_glass_cover),
@@ -772,6 +765,106 @@ const mapSOLAR_GEN = (rec: any) => {
   } as SolarRow;
 };
 
+const mapSOLAR_NET_SMART = (rec: any) => {
+  const t = rec?.testing ?? {};
+  const d = rec?.device ?? {};
+  const ISO_DATE = (v: any) => S(v).slice(0, 10);
+
+  return {
+    certificate_no: S(t.certificate_number),
+    consumer_name: S(t.consumer_name),
+    address: S(t.consumer_address),
+
+    meter_make: S(d.make),
+    meter_sr_no: S(d.serial_number),
+    meter_capacity: S(d.capacity),
+
+    date_of_testing: ISO_DATE(t.start_datetime || t.end_datetime),
+
+    testing_fees: t.testing_fees ?? null,
+    mr_no: S(t.fees_mr_no),
+    mr_date: S(t.fees_mr_date),
+    ref_no: S(t.ref_no),
+
+    start_reading_import: N(t.start_reading_import),
+    final_reading__import: N(t.final_reading__import),
+    difference__import: N(t.difference__import),
+
+    start_reading_export: N(t.start_reading_export),
+    final_reading_export: N(t.final_reading_export),
+    difference_export: N(t.difference_export),
+
+    import_ref_start_reading: N(t.import_ref_start_reading),
+    import_ref_end_reading: N(t.import_ref_end_reading),
+    export_ref_start_reading: N(t.export_ref_start_reading),
+    export_ref_end_reading: N(t.export_ref_end_reading),
+
+    final_Meter_Difference: N(t.final_Meter_Difference),
+    error_percentage_import: N(t.error_percentage_import),
+    error_percentage_export: N(t.error_percentage_export),
+
+    shunt_reading_before_test: N(t.shunt_reading_before_test),
+    shunt_reading_after_test: N(t.shunt_reading_after_test),
+    shunt_ref_start_reading: N(t.shunt_ref_start_reading),
+    shunt_ref_end_reading: N(t.shunt_ref_end_reading),
+    shunt_error_percentage: N(t.shunt_error_percentage),
+
+    nutral_reading_before_test: N(t.nutral_reading_before_test),
+    nutral_reading_after_test: N(t.nutral_reading_after_test),
+    nutral_ref_start_reading: N(t.nutral_ref_start_reading),
+    nutral_ref_end_reading: N(t.nutral_ref_end_reading),
+    nutral_error_percentage: N(t.nutral_error_percentage),
+
+    starting_current_test: S(t.shunt_current_test || t.nutral_current_test),
+    creep_test: S(t.shunt_creep_test || t.nutral_creep_test),
+    dial_test: S(t.shunt_dail_test || t.nutral_dail_test),
+
+    test_result: S(t.test_result),
+    remark: S(t.final_remarks || t.details || ''),
+    final_remark: S(t.final_remarks),
+
+    physical_condition_of_device: S(t.physical_condition_of_device),
+    seal_status: S(t.seal_status),
+    meter_glass_cover: S(t.meter_glass_cover),
+    terminal_block: S(t.terminal_block),
+    meter_body: S(t.meter_body),
+
+    import_upf_100_imax: N(t.import_upf_100_imax),
+    import_upf_100_ib: N(t.import_upf_100_ib),
+    import_upf_5_ib: N(t.import_upf_5_ib),
+
+    import_lag_05_100_imax: N(t.import_lag_05_100_imax),
+    import_lag_05_100_ib: N(t.import_lag_05_100_ib),
+    import_lag_05_10_ib: N(t.import_lag_05_10_ib),
+
+    import_lead_08_100_imax: N(t.import_lead_08_100_imax),
+    import_lead_08_100_ib: N(t.import_lead_08_100_ib),
+    import_lead_08_10_ib: N(t.import_lead_08_10_ib),
+
+    export_upf_100_imax: N(t.export_upf_100_imax),
+    export_upf_100_ib: N(t.export_upf_100_ib),
+    export_upf_5_ib: N(t.export_upf_5_ib),
+
+    export_lag_05_100_imax: N(t.export_lag_05_100_imax),
+    export_lag_05_100_ib: N(t.export_lag_05_100_ib),
+    export_lag_05_10_ib: N(t.export_lag_05_10_ib),
+
+    export_lead_08_100_imax: N(t.export_lead_08_100_imax),
+    export_lead_08_100_ib: N(t.export_lead_08_100_ib),
+    export_lead_08_10_ib: N(t.export_lead_08_10_ib),
+
+    dial_sr_import: N(t.dial_sr_import),
+    dial_sr_export: N(t.dial_sr_export),
+    dial_fr_import: N(t.dial_fr_import),
+    dial_fr_export: N(t.dial_fr_export),
+    dial_dosage_import: N(t.dial_dosage_import),
+    dial_dosage_export: N(t.dial_dosage_export),
+    dial_result_import: N(t.dial_result_import),
+    dial_result_export: N(t.dial_result_export),
+
+    net_imp_exp: N(t.net_imp_export),
+  } as SmartSolarRow;
+};
 
       const mapSTOP_DEF = (rec: any) => {
         const t = rec.testing || {};
@@ -1092,6 +1185,7 @@ const mapSOLAR_GEN = (rec: any) => {
             testStatus: commonHeaderBase.testStatus,
             testing_bench: commonHeaderBase.testing_bench,
             testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
             date: commonHeaderBase.date,
             lab_name: commonHeaderBase.lab_name,
             lab_address: commonHeaderBase.lab_address,
@@ -1101,10 +1195,69 @@ const mapSOLAR_GEN = (rec: any) => {
             rightLogoUrl: commonHeaderBase.rightLogoUrl,
           };
 
-          const netRows = rowsRaw.map(mapSOLAR_NET);
-          await this.solarNetPdf.download(headerForSolarNet, netRows, `SOLAR_NETMETER_${rid}.pdf`);
+          const headerForSolarNetSmart: SmartSolarHeader = {
+            location_code: commonHeaderBase.location_code,
+            location_name: commonHeaderBase.location_name,
+            testMethod: commonHeaderBase.testMethod,
+            testStatus: commonHeaderBase.testStatus,
+            testing_bench: commonHeaderBase.testing_bench,
+            testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
+            date: commonHeaderBase.date,
+            lab_name: commonHeaderBase.lab_name,
+            lab_address: commonHeaderBase.lab_address,
+            lab_email: commonHeaderBase.lab_email,
+            lab_phone: commonHeaderBase.lab_phone,
+            leftLogoUrl: commonHeaderBase.leftLogoUrl,
+            rightLogoUrl: commonHeaderBase.rightLogoUrl,
+          };
+
+          const smartRaw = rowsRaw.filter((rec) => this.isSmartSolarNetMeter(rec));
+          const normalRaw = rowsRaw.filter((rec) => !this.isSmartSolarNetMeter(rec));
+
+          console.log('SOLAR_NETMETER download split', {
+            total: rowsRaw.length,
+            smart: smartRaw.length,
+            normal: normalRaw.length
+          });
+
+          if (smartRaw.length) {
+            const smartRows = smartRaw.map(mapSOLAR_NET_SMART);
+
+            try {
+              await this.solarNetSmartPdf.download(
+                headerForSolarNetSmart,
+                smartRows,
+                normalRaw.length
+                  ? `SOLAR_NETMETER_SMART_${rid}.pdf`
+                  : `SOLAR_NETMETER_${rid}.pdf`
+              );
+            } catch (err) {
+              console.error('Smart solar net PDF failed, trying open()', err);
+              await this.solarNetSmartPdf.open(headerForSolarNetSmart, smartRows);
+            }
+          }
+
+          if (normalRaw.length) {
+            const netRows = normalRaw.map(mapSOLAR_NET_NORMAL);
+
+            try {
+              await this.solarNetPdf.download(
+                headerForSolarNet,
+                netRows,
+                smartRaw.length
+                  ? `SOLAR_NETMETER_NORMAL_${rid}.pdf`
+                  : `SOLAR_NETMETER_${rid}.pdf`
+              );
+            } catch (err) {
+              console.error('Normal solar net PDF failed, trying open()', err);
+              await this.solarNetPdf.open(headerForSolarNet, netRows);
+            }
+          }
+
           break;
         }
+
         case 'STOP_DEFECTIVE': {
           const headerForStopDef: StopDefMeta = {
             date: commonHeaderBase.date,

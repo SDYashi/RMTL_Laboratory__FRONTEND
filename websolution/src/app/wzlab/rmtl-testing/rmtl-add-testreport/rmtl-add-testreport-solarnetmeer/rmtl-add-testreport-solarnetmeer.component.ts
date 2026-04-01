@@ -2,23 +2,32 @@ import { Component, OnInit } from '@angular/core';
 import { AuthService } from 'src/app/core/auth.service';
 import { TestingBench, UserPublic } from 'src/app/interface/models';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+
 import {
   SolarNetMeterCertificatePdfService,
-  SolarHeader,
-  SolarRow
+  SolarHeader as NormalSolarHeader,
+  SolarRow as NormalSolarRow
 } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
+
+import {
+  SolarNetMeterCertificatePdfService_1,
+  SolarHeader as SmartSolarHeader,
+  SolarRow as SmartSolarRow
+} from 'src/app/shared/solarnetmeter-certificate-pdf.service_smart';
 
 interface MeterDevice {
   id: number;
   serial_number: string;
   make?: string;
   capacity?: string;
+  meter_type?: string | null;
   location_code?: string | null;
   location_name?: string | null;
   phase?: string | null;
 }
+
 interface AssignmentItem {
-  id: number; // assignment_id
+  id: number;
   device_id: number;
   device?: MeterDevice | null;
   testing_bench?: TestingBench | null;
@@ -31,13 +40,14 @@ interface CertRow {
   assignment_id?: number;
   device_id?: number;
   notFound?: boolean;
-    testshifts?: string | null; // enum
+  testshifts?: string | null;
 
   consumer_name: string;
   address: string;
   meter_make: string;
   meter_sr_no: string;
   meter_capacity: string;
+  meter_type?: string | null;
 
   certificate_no?: string;
   date_of_testing?: string;
@@ -47,13 +57,11 @@ interface CertRow {
   mr_date?: string;
   ref_no?: string;
 
-  // legacy
   starting_reading?: number;
   final_reading_r?: number;
   final_reading_e?: number;
   difference?: number;
 
-  // Import / Export (meter deltas)
   start_reading_import?: number | null;
   final_reading__import?: number | null;
   difference__import?: number | null;
@@ -64,7 +72,6 @@ interface CertRow {
 
   final_Meter_Difference?: number | null;
 
-  // Import/Export reference readings
   import_ref_start_reading?: number | null;
   import_ref_end_reading?: number | null;
   _import_delta_ref?: number | null;
@@ -76,14 +83,12 @@ interface CertRow {
   error_percentage_import?: number | null;
   error_percentage_export?: number | null;
 
-  // physical condition (not shown yet in PDF, but sent to API)
   physical_condition_of_device?: string | null;
   seal_status?: string | null;
   meter_glass_cover?: string | null;
   terminal_block?: string | null;
   meter_body?: string | null;
 
-  // SHUNT
   shunt_reading_before_test?: number | null;
   shunt_reading_after_test?: number | null;
   shunt_ref_start_reading?: number | null;
@@ -96,7 +101,6 @@ interface CertRow {
   shunt_creep_test?: string | null;
   shunt_dail_test?: string | null;
 
-  // NUTRAL
   nutral_reading_before_test?: number | null;
   nutral_reading_after_test?: number | null;
   nutral_ref_start_reading?: number | null;
@@ -108,6 +112,42 @@ interface CertRow {
   nutral_current_test?: string | null;
   nutral_creep_test?: string | null;
   nutral_dail_test?: string | null;
+
+  import_upf_100_imax?: string | null;
+  import_upf_100_ib?: string | null;
+  import_upf_5_ib?: string | null;
+
+  import_lag_05_100_imax?: string | null;
+  import_lag_05_100_ib?: string | null;
+  import_lag_05_10_ib?: string | null;
+
+  import_lead_08_100_imax?: string | null;
+  import_lead_08_100_ib?: string | null;
+  import_lead_08_10_ib?: string | null;
+
+  export_upf_100_imax?: string | null;
+  export_upf_100_ib?: string | null;
+  export_upf_5_ib?: string | null;
+
+  export_lag_05_100_imax?: string | null;
+  export_lag_05_100_ib?: string | null;
+  export_lag_05_10_ib?: string | null;
+
+  export_lead_08_100_imax?: string | null;
+  export_lead_08_100_ib?: string | null;
+  export_lead_08_10_ib?: string | null;
+
+  dial_sr_import?: string | null;
+  dial_sr_export?: string | null;
+  dial_fr_import?: string | null;
+  dial_fr_export?: string | null;
+  dial_dosage_import?: string | null;
+  dial_dosage_export?: string | null;
+  dial_result_import?: string | null;
+  dial_result_export?: string | null;
+
+  net_imp_export?: string | null;
+  report_version?: string | null;
 
   final_remarks?: string;
   remark?: string;
@@ -130,21 +170,22 @@ interface ModalState {
   styleUrls: ['./rmtl-add-testreport-solarnetmeer.component.css']
 })
 export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
+  reportversion = '1.0';
   header = {
     location_code: '',
     location_name: '',
     testing_bench: '-',
     testing_user: '-',
     approving_user: '-',
-    date: '-' ,
-    phase: '-' 
+    date: '-',
+    phase: '-'
   };
 
   test_methods: any[] = [];
   test_statuses: any[] = [];
   testMethod: string | null = null;
   testStatus: string | null = null;
-      testshifts: string | null = null;
+  testshifts: string | null = null;
   shifts: string[] = [];
 
   channelView: 'SHUNT' | 'NUTRAL' | 'BOTH' = 'BOTH';
@@ -163,7 +204,13 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
   private serialIndex: Record<
     string,
-    { make?: string; capacity?: string; device_id: number; assignment_id: number }
+    {
+      make?: string;
+      capacity?: string;
+      meter_type?: string | null;
+      device_id: number;
+      assignment_id: number;
+    }
   > = {};
 
   filterText = '';
@@ -226,6 +273,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   constructor(
     private api: ApiServicesService,
     private pdfSvc: SolarNetMeterCertificatePdfService,
+    private smartPdfSvc: SolarNetMeterCertificatePdfService_1,
     private authService: AuthService
   ) {}
 
@@ -282,19 +330,20 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       });
     }
 
-    this.reloadAssigned(false); // don't replace existing table
+    this.reloadAssigned(false);
   }
 
-  // ----- validation -----
+  isSmartSolarMeter(row: CertRow): boolean {
+    return (row.meter_type || '').trim().toUpperCase() === 'SMART METER';
+  }
+
   private validateContext(): { ok: boolean; msg?: string } {
-    if (!this.currentUserId)
-      return { ok: false, msg: 'Missing user_id — please sign in again.' };
-    if (!this.currentLabId)
-      return { ok: false, msg: 'Missing lab_id — select a lab.' };
-    if (!this.device_type)
-      return { ok: false, msg: 'Missing device_type — refresh enums.' };
-    if (!this.device_testing_purpose)
+    if (!this.currentUserId) return { ok: false, msg: 'Missing user_id — please sign in again.' };
+    if (!this.currentLabId) return { ok: false, msg: 'Missing lab_id — select a lab.' };
+    if (!this.device_type) return { ok: false, msg: 'Missing device_type — refresh enums.' };
+    if (!this.device_testing_purpose) {
       return { ok: false, msg: 'Missing device_testing_purpose — refresh enums.' };
+    }
     return { ok: true };
   }
 
@@ -352,33 +401,45 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         requireText(r.mr_no, 'M.R. No / Online Txn No', rowNo);
         requireText(r.mr_date, 'Date of Payment', rowNo);
 
-        requireText(r.physical_condition_of_device, 'Physical Condition of Device', rowNo);
-        requireText(r.seal_status, 'Seal Status', rowNo);
-        requireText(r.meter_glass_cover, 'Meter Glass Cover', rowNo);
-        requireText(r.terminal_block, 'Terminal Block', rowNo);
-        requireText(r.meter_body, 'Meter Body', rowNo);
-
-        // Import readings
-        requireNumber(r.start_reading_import, 'Start Reading (Import - Meter)', rowNo);
-        requireNumber(r.final_reading__import, 'Final Reading (Import - Meter)', rowNo);
-        requireNumber(r.import_ref_start_reading, 'Reference Start Reading (Import)', rowNo);
-        requireNumber(r.import_ref_end_reading, 'Reference Final Reading (Import)', rowNo);
-        requireNotNull(r.difference__import, 'Difference (Import - Meter)', rowNo);
-        requireNotNull(r.error_percentage_import, 'Error % (Import)', rowNo);
-
-        // Export readings
-        requireNumber(r.start_reading_export, 'Start Reading (Export - Meter)', rowNo);
-        requireNumber(r.final_reading_export, 'Final Reading (Export - Meter)', rowNo);
-        requireNumber(r.export_ref_start_reading, 'Reference Start Reading (Export)', rowNo);
-        requireNumber(r.export_ref_end_reading, 'Reference Final Reading (Export)', rowNo);
-        requireNotNull(r.difference_export, 'Difference (Export - Meter)', rowNo);
-        requireNotNull(r.error_percentage_export, 'Error % (Export)', rowNo);
-
-        requireNotNull(r.final_Meter_Difference, 'Final Difference (Import − Export)', rowNo);
-
         requireText(r.shunt_current_test, 'Current Test Result (SHUNT)', rowNo);
         requireText(r.shunt_creep_test, 'Creep Test Result (SHUNT)', rowNo);
         requireText(r.shunt_dail_test, 'Dial Test Result (SHUNT)', rowNo);
+
+        if (this.isSmartSolarMeter(r)) {
+          requireText(r.import_upf_100_imax, 'Import UPF 100% IMAX', rowNo);
+          requireText(r.import_upf_100_ib, 'Import UPF 100% IB', rowNo);
+          requireText(r.import_upf_5_ib, 'Import UPF 5% IB', rowNo);
+
+          requireText(r.import_lag_05_100_imax, 'Import 0.5 LAG 100% IMAX', rowNo);
+          requireText(r.import_lag_05_100_ib, 'Import 0.5 LAG 100% IB', rowNo);
+          requireText(r.import_lag_05_10_ib, 'Import 0.5 LAG 10% IB', rowNo);
+
+          requireText(r.import_lead_08_100_imax, 'Import 0.8 LEAD 100% IMAX', rowNo);
+          requireText(r.import_lead_08_100_ib, 'Import 0.8 LEAD 100% IB', rowNo);
+          requireText(r.import_lead_08_10_ib, 'Import 0.8 LEAD 10% IB', rowNo);
+
+          requireText(r.export_upf_100_imax, 'Export UPF 100% IMAX', rowNo);
+          requireText(r.export_upf_100_ib, 'Export UPF 100% IB', rowNo);
+          requireText(r.export_upf_5_ib, 'Export UPF 5% IB', rowNo);
+
+          requireText(r.export_lag_05_100_imax, 'Export 0.5 LAG 100% IMAX', rowNo);
+          requireText(r.export_lag_05_100_ib, 'Export 0.5 LAG 100% IB', rowNo);
+          requireText(r.export_lag_05_10_ib, 'Export 0.5 LAG 10% IB', rowNo);
+
+          requireText(r.export_lead_08_100_imax, 'Export 0.8 LEAD 100% IMAX', rowNo);
+          requireText(r.export_lead_08_100_ib, 'Export 0.8 LEAD 100% IB', rowNo);
+          requireText(r.export_lead_08_10_ib, 'Export 0.8 LEAD 10% IB', rowNo);
+
+          requireText(r.dial_sr_import, 'Dial SR Import', rowNo);
+          requireText(r.dial_sr_export, 'Dial SR Export', rowNo);
+          requireText(r.dial_fr_import, 'Dial FR Import', rowNo);
+          requireText(r.dial_fr_export, 'Dial FR Export', rowNo);
+          requireText(r.dial_dosage_import, 'Dial Dosage Import', rowNo);
+          requireText(r.dial_dosage_export, 'Dial Dosage Export', rowNo);
+          requireText(r.dial_result_import, 'Dial Result Import', rowNo);
+          requireText(r.dial_result_export, 'Dial Result Export', rowNo);
+          requireText(r.net_imp_export, 'Net Imp Export', rowNo);
+        }
 
         requireText(r.final_remarks, 'Final Remark / Observation', rowNo);
         requireText(r.test_result, 'Test Result', rowNo);
@@ -389,7 +450,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
 
     this.header.testing_bench = (this.header.testing_bench || this.testing_bench || '').trim() || '-';
     this.header.testing_user = (this.header.testing_user || this.testing_user || '').trim() || '-';
-    this.header.approving_user = (this.header.approving_user || this.approving_user || '').trim() || '-';
+    this.header.approving_user =
+      (this.header.approving_user || this.approving_user || '').trim() || '-';
 
     this.testing_bench = this.header.testing_bench;
     this.testing_user = this.header.testing_user;
@@ -405,7 +467,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     return { ok: true };
   }
 
-  // ----- source info -----
   fetchButtonData(): void {
     if (!this.selectedSourceType || !this.selectedSourceName) {
       this.showBanner('warning', 'Missing Input — Select a source type and enter code.');
@@ -427,15 +488,14 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     this.filteredSources = [];
   }
 
-  // ----- counts -----
   get matchedCount() {
     return (this.rows ?? []).filter((r) => !!r.meter_sr_no && !r.notFound).length;
   }
+
   get unknownCount() {
     return (this.rows ?? []).filter((r) => !!r.notFound).length;
   }
 
-  // ----- row helpers -----
   private emptyRow(seed?: Partial<CertRow>): CertRow {
     return {
       _open: false,
@@ -444,6 +504,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       meter_make: '',
       meter_sr_no: '',
       meter_capacity: '',
+      meter_type: null,
       test_result: '',
 
       testing_fees: '',
@@ -496,6 +557,42 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       nutral_creep_test: null,
       nutral_dail_test: null,
 
+      import_upf_100_imax: null,
+      import_upf_100_ib: null,
+      import_upf_5_ib: null,
+
+      import_lag_05_100_imax: null,
+      import_lag_05_100_ib: null,
+      import_lag_05_10_ib: null,
+
+      import_lead_08_100_imax: null,
+      import_lead_08_100_ib: null,
+      import_lead_08_10_ib: null,
+
+      export_upf_100_imax: null,
+      export_upf_100_ib: null,
+      export_upf_5_ib: null,
+
+      export_lag_05_100_imax: null,
+      export_lag_05_100_ib: null,
+      export_lag_05_10_ib: null,
+
+      export_lead_08_100_imax: null,
+      export_lead_08_100_ib: null,
+      export_lead_08_10_ib: null,
+
+      dial_sr_import: null,
+      dial_sr_export: null,
+      dial_fr_import: null,
+      dial_fr_export: null,
+      dial_dosage_import: null,
+      dial_dosage_export: null,
+      dial_result_import: null,
+      dial_result_export: null,
+
+      net_imp_export: null,
+      report_version: null,
+
       final_remarks: '',
       remark: '',
 
@@ -512,13 +609,13 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       this.serialIndex[s] = {
         make: d?.make || '',
         capacity: d?.capacity || '',
+        meter_type: d?.meter_type || null,
         device_id: d?.id ?? a.device_id ?? 0,
         assignment_id: a?.id ?? 0
       };
     }
   }
 
-  // ----- assigned loading -----
   reloadAssigned(replaceRows: boolean = true) {
     const v = this.validateContext();
     if (!v.ok) {
@@ -552,32 +649,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
           });
 
           this.rebuildSerialIndex(asg);
-
-          // const first = asg.find((a) => a.device);
-          // if (first?.device) {
-          //   this.header.location_code = this.header.location_code || (first.device.location_code ?? '');
-          //   this.header.location_name = this.header.location_name || (first.device.location_name ?? '');
-
-          //   this.header.testing_bench =
-          //     this.header.testing_bench && this.header.testing_bench !== '-'
-          //       ? this.header.testing_bench
-          //       : first.testing_bench?.bench_name ?? '-';
-
-          //   this.header.testing_user =
-          //     this.header.testing_user && this.header.testing_user !== '-'
-          //       ? this.header.testing_user
-          //       : first.user_assigned?.name ?? first.user_assigned?.username ?? '-';
-
-          //   this.header.approving_user =
-          //     this.header.approving_user && this.header.approving_user !== '-'
-          //       ? this.header.approving_user
-          //       : first.assigned_by_user?.name ?? first.assigned_by_user?.username ?? '-';
-
-          //   this.testing_bench = this.header.testing_bench;
-          //   this.testing_user = this.header.testing_user;
-          //   this.approving_user = this.header.approving_user;
-          // }
-
           this.asgPicker.list = asg;
           this.loading = false;
         },
@@ -588,7 +659,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       });
   }
 
-  // ----- row editing -----
   onSerialChanged(i: number, serial: string) {
     const key = (serial || '').toUpperCase().trim();
     const row = this.rows[i];
@@ -597,12 +667,14 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     if (hit) {
       row.meter_make = hit.make || '';
       row.meter_capacity = hit.capacity || '';
+      row.meter_type = hit.meter_type || null;
       row.device_id = hit.device_id || 0;
       row.assignment_id = hit.assignment_id || 0;
       row.notFound = false;
     } else {
       row.meter_make = '';
       row.meter_capacity = '';
+      row.meter_type = null;
       row.device_id = 0;
       row.assignment_id = 0;
       row.notFound = key.length > 0;
@@ -612,6 +684,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   addRow() {
     this.rows.push(this.emptyRow());
   }
+
   removeRow(i: number) {
     if (i >= 0 && i < this.rows.length) {
       this.rows.splice(i, 1);
@@ -634,7 +707,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     );
   }
 
-  // ----- legacy compute -----
   recompute(i: number) {
     const r = this.rows[i];
     const a = Number(r.final_reading_r ?? 0);
@@ -643,7 +715,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     r.difference = v as any;
   }
 
-  // ----- Import/Export compute -----
   recomputeIE(i: number) {
     const r = this.rows[i];
 
@@ -663,8 +734,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     const expRefStart = this.numOrNull(r.export_ref_start_reading);
     const expRefEnd = this.numOrNull(r.export_ref_end_reading);
 
-    const impRefDelta = impRefStart != null && impRefEnd != null ? this.round4(impRefEnd - impRefStart) : null;
-    const expRefDelta = expRefStart != null && expRefEnd != null ? this.round4(expRefEnd - expRefStart) : null;
+    const impRefDelta =
+      impRefStart != null && impRefEnd != null ? this.round4(impRefEnd - impRefStart) : null;
+    const expRefDelta =
+      expRefStart != null && expRefEnd != null ? this.round4(expRefEnd - expRefStart) : null;
 
     r._import_delta_ref = impRefDelta;
     r._export_delta_ref = expRefDelta;
@@ -689,7 +762,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     }
   }
 
-  // ----- SHUNT/NUTRAL compute -----
   recomputeChannel(i: number) {
     const r = this.rows[i];
 
@@ -698,8 +770,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     const sh_r_start = this.numOrNull(r.shunt_ref_start_reading);
     const sh_r_final = this.numOrNull(r.shunt_ref_end_reading);
 
-    const sh_m_delta = sh_m_start != null && sh_m_final != null ? this.round4(sh_m_final - sh_m_start) : null;
-    const sh_r_delta = sh_r_start != null && sh_r_final != null ? this.round4(sh_r_final - sh_r_start) : null;
+    const sh_m_delta =
+      sh_m_start != null && sh_m_final != null ? this.round4(sh_m_final - sh_m_start) : null;
+    const sh_r_delta =
+      sh_r_start != null && sh_r_final != null ? this.round4(sh_r_final - sh_r_start) : null;
 
     r._shunt_delta_meter = sh_m_delta;
     r._shunt_delta_ref = sh_r_delta;
@@ -715,8 +789,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     const nu_r_start = this.numOrNull(r.nutral_ref_start_reading);
     const nu_r_final = this.numOrNull(r.nutral_ref_end_reading);
 
-    const nu_m_delta = nu_m_start != null && nu_m_final != null ? this.round4(nu_m_final - nu_m_start) : null;
-    const nu_r_delta = nu_r_start != null && nu_r_final != null ? this.round4(nu_r_final - nu_r_start) : null;
+    const nu_m_delta =
+      nu_m_start != null && nu_m_final != null ? this.round4(nu_m_final - nu_m_start) : null;
+    const nu_r_delta =
+      nu_r_start != null && nu_r_final != null ? this.round4(nu_r_final - nu_r_start) : null;
 
     r._nutral_delta_meter = nu_m_delta;
     r._nutral_delta_ref = nu_r_delta;
@@ -728,13 +804,12 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     }
   }
 
-  // ----- utils -----
   private numOrNull(v: any) {
+    if (v === null || v === undefined || v === '') return null;
     const n = Number(v);
     return isFinite(n) ? n : null;
   }
 
-  // ✅ UPDATED: SAFE isoOn (prevents "Invalid time value")
   private isoOn(dateStr?: string) {
     if (!dateStr || dateStr === '-' || dateStr === 'null') {
       return new Date().toISOString();
@@ -749,11 +824,11 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   private round4(v: number) {
     return +v.toFixed(4);
   }
+
   private round2(v: number) {
     return +v.toFixed(2);
   }
 
-  // ----- API payload -----
   private buildPayload(): any[] {
     const requester = this.header.location_name || this.filteredSources?.name || null;
 
@@ -817,6 +892,44 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         nutral_creep_test: r.nutral_creep_test || null,
         nutral_dail_test: r.nutral_dail_test || null,
 
+        meter_type: r.meter_type || null,
+
+        import_upf_100_imax: this.numOrNull(r.import_upf_100_imax),
+        import_upf_100_ib: this.numOrNull(r.import_upf_100_ib),
+        import_upf_5_ib: this.numOrNull(r.import_upf_5_ib),
+
+        import_lag_05_100_imax: this.numOrNull(r.import_lag_05_100_imax),
+        import_lag_05_100_ib: this.numOrNull(r.import_lag_05_100_ib),
+        import_lag_05_10_ib: this.numOrNull(r.import_lag_05_10_ib),
+
+        import_lead_08_100_imax: this.numOrNull(r.import_lead_08_100_imax),
+        import_lead_08_100_ib: this.numOrNull(r.import_lead_08_100_ib),
+        import_lead_08_10_ib: this.numOrNull(r.import_lead_08_10_ib),
+
+        export_upf_100_imax: this.numOrNull(r.export_upf_100_imax),
+        export_upf_100_ib: this.numOrNull(r.export_upf_100_ib),
+        export_upf_5_ib: this.numOrNull(r.export_upf_5_ib),
+
+        export_lag_05_100_imax: this.numOrNull(r.export_lag_05_100_imax),
+        export_lag_05_100_ib: this.numOrNull(r.export_lag_05_100_ib),
+        export_lag_05_10_ib: this.numOrNull(r.export_lag_05_10_ib),
+
+        export_lead_08_100_imax: this.numOrNull(r.export_lead_08_100_imax),
+        export_lead_08_100_ib: this.numOrNull(r.export_lead_08_100_ib),
+        export_lead_08_10_ib: this.numOrNull(r.export_lead_08_10_ib),
+
+        dial_sr_import: this.numOrNull(r.dial_sr_import),
+        dial_sr_export: this.numOrNull(r.dial_sr_export),
+        dial_fr_import: this.numOrNull(r.dial_fr_import),
+        dial_fr_export: this.numOrNull(r.dial_fr_export),
+        dial_dosage_import: this.numOrNull(r.dial_dosage_import),
+        dial_dosage_export: this.numOrNull(r.dial_dosage_export),
+        dial_result_import: this.numOrNull(r.dial_result_import),
+        dial_result_export: this.numOrNull(r.dial_result_export),
+
+        net_imp_export: this.numOrNull(r.net_imp_export),
+        report_version: r.report_version || null,
+
         details: r.remark || null,
         test_result: r.test_result || null,
         test_method: this.testMethod || null,
@@ -828,7 +941,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
         consumer_address: r.address || null,
         certificate_number: r.certificate_no || null,
 
-        testing_fees: r.testing_fees ?? null,
+        testing_fees: r.testing_fees|| null,
         fees_mr_no: r.mr_no || null,
         fees_mr_date: r.mr_date || null,
         ref_no: r.ref_no || null,
@@ -858,7 +971,276 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       }));
   }
 
-  // ----- modal flow -----
+  private buildPdfHeader(resp: any): NormalSolarHeader & SmartSolarHeader {
+    const labFromResp = resp?.lab_info || resp?.lab || null;
+    const effLab = labFromResp || this.labInfo || {};
+
+    const firstRowDate =
+      this.rows.find((r) => (r.meter_sr_no || '').trim())?.date_of_testing || null;
+
+    return {
+      location_code: this.header.location_code,
+      location_name: this.header.location_name,
+      testMethod: this.testMethod,
+      testStatus: this.testStatus,
+      testing_bench: this.header.testing_bench || this.testing_bench || '-',
+      testing_user: this.header.testing_user || this.testing_user || '-',
+      approving_user: this.header.approving_user || this.approving_user || '-',
+      date: firstRowDate
+        ? this.isoOn(firstRowDate).split('T')[0]
+        : new Date().toISOString().slice(0, 10),
+
+      lab_name:
+        (effLab as any)?.lab_pdfheader_name ||
+        (effLab as any)?.lab_name ||
+        this.labInfo?.lab_name ||
+        '-',
+      lab_address:
+        (effLab as any)?.address ||
+        (effLab as any)?.address_line ||
+        this.labInfo?.address ||
+        '-',
+      lab_email: (effLab as any)?.email || this.labInfo?.email || '-',
+      lab_phone: (effLab as any)?.phone || this.labInfo?.phone || '-',
+      leftLogoUrl:
+        (effLab as any)?.left_logo_url || this.leftLogoUrl || '/assets/icons/wzlogo.png',
+      rightLogoUrl:
+        (effLab as any)?.right_logo_url || this.rightLogoUrl || '/assets/icons/wzlogo.png'
+    };
+  }
+
+  private mapCommonPdfRow(r: CertRow) {
+    return {
+      certificate_no: r.certificate_no,
+      consumer_name: r.consumer_name,
+      address: r.address,
+      meter_make: r.meter_make,
+      meter_sr_no: r.meter_sr_no,
+      meter_capacity: r.meter_capacity,
+      date_of_testing: r.date_of_testing || null,
+      testing_fees: r.testing_fees|| null,
+      mr_no: r.mr_no || null,
+      mr_date: r.mr_date || null,
+      ref_no: r.ref_no || null,
+
+      starting_reading: this.numOrNull(r.starting_reading),
+      final_reading_r: this.numOrNull(r.final_reading_r),
+      final_reading_e: this.numOrNull(r.final_reading_e),
+      difference: this.numOrNull(r.difference),
+
+      start_reading_import: this.numOrNull(r.start_reading_import),
+      final_reading__import: this.numOrNull(r.final_reading__import),
+      difference__import: this.numOrNull(r.difference__import),
+
+      start_reading_export: this.numOrNull(r.start_reading_export),
+      final_reading_export: this.numOrNull(r.final_reading_export),
+      difference_export: this.numOrNull(r.difference_export),
+
+      final_Meter_Difference: this.numOrNull(r.final_Meter_Difference),
+
+      import_ref_start_reading: this.numOrNull(r.import_ref_start_reading),
+      import_ref_end_reading: this.numOrNull(r.import_ref_end_reading),
+      error_percentage_import: this.numOrNull(r.error_percentage_import),
+
+      export_ref_start_reading: this.numOrNull(r.export_ref_start_reading),
+      export_ref_end_reading: this.numOrNull(r.export_ref_end_reading),
+      error_percentage_export: this.numOrNull(r.error_percentage_export),
+
+      shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+      shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
+      shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
+      shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
+      shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
+
+      nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+      nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
+      nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
+      nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
+      nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
+
+      starting_current_test: r.shunt_current_test || r.nutral_current_test || null,
+      creep_test: r.shunt_creep_test || r.nutral_creep_test || null,
+      dial_test: r.shunt_dail_test || r.nutral_dail_test || null,
+
+      remark: r.remark || r.final_remarks || null,
+      final_remark: r.final_remarks || null,
+      test_result: r.test_result || null,
+
+      physical_condition_of_device: r.physical_condition_of_device || null,
+      seal_status: r.seal_status || null,
+      meter_glass_cover: r.meter_glass_cover || null,
+      terminal_block: r.terminal_block || null,
+      meter_body: r.meter_body || null
+    };
+  }
+
+private mapNormalPdfRows(rows: CertRow[]): NormalSolarRow[] {
+  return rows.map((r) => ({
+    certificate_no: r.certificate_no || '',
+    consumer_name: r.consumer_name || '',
+    address: r.address || '',
+    meter_make: r.meter_make || '',
+    meter_sr_no: r.meter_sr_no || '',
+    meter_capacity: r.meter_capacity || '',
+    date_of_testing: r.date_of_testing || null,
+
+    testing_fees: r.testing_fees ?? null,
+    mr_no: r.mr_no || null,
+    mr_date: r.mr_date || null,
+    ref_no: r.ref_no || null,
+
+    starting_reading: this.numOrNull(r.starting_reading),
+    final_reading_r: this.numOrNull(r.final_reading_r),
+    final_reading_e: this.numOrNull(r.final_reading_e),
+    difference: this.numOrNull(r.difference),
+
+    start_reading_import: this.numOrNull(r.start_reading_import),
+    final_reading__import: this.numOrNull(r.final_reading__import),
+    difference__import: this.numOrNull(r.difference__import),
+
+    start_reading_export: this.numOrNull(r.start_reading_export),
+    final_reading_export: this.numOrNull(r.final_reading_export),
+    difference_export: this.numOrNull(r.difference_export),
+
+    final_Meter_Difference: this.numOrNull(r.final_Meter_Difference),
+
+    import_ref_start_reading: this.numOrNull(r.import_ref_start_reading),
+    import_ref_end_reading: this.numOrNull(r.import_ref_end_reading),
+    error_percentage_import: this.numOrNull(r.error_percentage_import),
+
+    export_ref_start_reading: this.numOrNull(r.export_ref_start_reading),
+    export_ref_end_reading: this.numOrNull(r.export_ref_end_reading),
+    error_percentage_export: this.numOrNull(r.error_percentage_export),
+
+    shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
+    shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
+    shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
+    shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
+    shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
+
+    nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
+    nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
+    nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
+    nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
+    nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
+
+    starting_current_test: r.shunt_current_test || r.nutral_current_test || null,
+    creep_test: r.shunt_creep_test || r.nutral_creep_test || null,
+    dial_test: r.shunt_dail_test || r.nutral_dail_test || null,
+
+    test_result: r.test_result || null,
+    remark: r.remark || r.final_remarks || null,
+    final_remark: r.final_remarks || null,
+
+    physical_condition_of_device: r.physical_condition_of_device || null,
+    seal_status: r.seal_status || null,
+    meter_glass_cover: r.meter_glass_cover || null,
+    terminal_block: r.terminal_block || null,
+    meter_body: r.meter_body || null
+  }));
+}
+
+  private mapSmartPdfRows(rows: CertRow[]): SmartSolarRow[] {
+    return rows.map((r) => ({
+      ...this.mapCommonPdfRow(r),
+
+      import_upf_100_imax: this.numOrNull(r.import_upf_100_imax),
+      import_upf_100_ib: this.numOrNull(r.import_upf_100_ib),
+      import_upf_5_ib: this.numOrNull(r.import_upf_5_ib),
+
+      import_lag_05_100_imax: this.numOrNull(r.import_lag_05_100_imax),
+      import_lag_05_100_ib: this.numOrNull(r.import_lag_05_100_ib),
+      import_lag_05_10_ib: this.numOrNull(r.import_lag_05_10_ib),
+
+      import_lead_08_100_imax: this.numOrNull(r.import_lead_08_100_imax),
+      import_lead_08_100_ib: this.numOrNull(r.import_lead_08_100_ib),
+      import_lead_08_10_ib: this.numOrNull(r.import_lead_08_10_ib),
+
+      export_upf_100_imax: this.numOrNull(r.export_upf_100_imax),
+      export_upf_100_ib: this.numOrNull(r.export_upf_100_ib),
+      export_upf_5_ib: this.numOrNull(r.export_upf_5_ib),
+
+      export_lag_05_100_imax: this.numOrNull(r.export_lag_05_100_imax),
+      export_lag_05_100_ib: this.numOrNull(r.export_lag_05_100_ib),
+      export_lag_05_10_ib: this.numOrNull(r.export_lag_05_10_ib),
+
+      export_lead_08_100_imax: this.numOrNull(r.export_lead_08_100_imax),
+      export_lead_08_100_ib: this.numOrNull(r.export_lead_08_100_ib),
+      export_lead_08_10_ib: this.numOrNull(r.export_lead_08_10_ib),
+
+      dial_sr_import: this.numOrNull(r.dial_sr_import),
+      dial_sr_export: this.numOrNull(r.dial_sr_export),
+      dial_fr_import: this.numOrNull(r.dial_fr_import),
+      dial_fr_export: this.numOrNull(r.dial_fr_export),
+      dial_dosage_import: this.numOrNull(r.dial_dosage_import),
+      dial_dosage_export: this.numOrNull(r.dial_dosage_export),
+      dial_result_import: this.numOrNull(r.dial_result_import),
+      dial_result_export: this.numOrNull(r.dial_result_export),
+
+      net_imp_exp: this.numOrNull(r.net_imp_export)
+    }));
+  }
+
+private async generatePdfByMeterType(resp: any): Promise<void> {
+  const hdr = this.buildPdfHeader(resp);
+
+  const allRows = (this.rows || []).filter((r) => (r.meter_sr_no || '').trim());
+
+  const smartRowsSource = allRows.filter((r) => this.isSmartSolarMeter(r));
+  const normalRowsSource = allRows.filter((r) => !this.isSmartSolarMeter(r));
+
+  console.log('PDF split => total:', allRows.length);
+  console.log('PDF split => smart:', smartRowsSource.length);
+  console.log('PDF split => normal:', normalRowsSource.length);
+
+  const smartRows = this.mapSmartPdfRows(smartRowsSource);
+  const normalRows = this.mapNormalPdfRows(normalRowsSource);
+
+  if (!smartRows.length && !normalRows.length) {
+    throw new Error('No rows available for PDF generation.');
+  }
+
+  // SMART PDF
+  if (smartRows.length) {
+    try {
+      if (this.pdfMode === 'print') {
+        await this.smartPdfSvc.print(hdr, smartRows);
+      } else {
+        await this.smartPdfSvc.download(
+          hdr,
+          smartRows,
+          normalRows.length
+            ? 'SOLAR_NETMETER_CERTIFICATES_SMART.pdf'
+            : 'SOLAR_NETMETER_CERTIFICATES.pdf'
+        );
+      }
+    } catch (err) {
+      console.error('Smart PDF failed, trying open():', err);
+      await this.smartPdfSvc.open(hdr, smartRows);
+    }
+  }
+
+  // NORMAL PDF
+  if (normalRows.length) {
+    try {
+      if (this.pdfMode === 'print') {
+        await this.pdfSvc.print(hdr, normalRows);
+      } else {
+        await this.pdfSvc.download(
+          hdr,
+          normalRows,
+          smartRows.length
+            ? 'SOLAR_NETMETER_CERTIFICATES_NON_SMART.pdf'
+            : 'SOLAR_NETMETER_CERTIFICATES.pdf'
+        );
+      }
+    } catch (err) {
+      console.error('Normal PDF failed, trying open():', err);
+      await this.pdfSvc.open(hdr, normalRows);
+    }
+  }
+}
+
   openConfirm(action: ModalAction) {
     this.modal.action = action;
 
@@ -873,12 +1255,12 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       this.modal.open = true;
     }
   }
+
   closeModal() {
     this.modal.open = false;
     this.modal.action = null;
   }
 
-  // ----- picker modal -----
   openAssignedPicker() {
     const v = this.validateContext();
     if (!v.ok) {
@@ -892,6 +1274,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     this.asgPicker.replaceExisting = true;
     this.asgPicker.open = true;
   }
+
   closeAssignedPicker() {
     this.asgPicker.open = false;
   }
@@ -928,15 +1311,22 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
       if (!this.header.location_name) this.header.location_name = a.device?.location_name ?? '';
       if (!this.header.testing_bench) this.header.testing_bench = a.testing_bench?.bench_name ?? '';
-      if (!this.header.testing_user) this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
-      if (!this.header.approving_user) this.header.approving_user = a.assigned_by_user?.name || a.assigned_by_user?.username || '';
-      if (!this.header.phase && a.device?.phase) this.header.phase = (a.device.phase || '').toUpperCase();
- 
+      if (!this.header.testing_user) {
+        this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
+      }
+      if (!this.header.approving_user) {
+        this.header.approving_user =
+          a.assigned_by_user?.name || a.assigned_by_user?.username || '';
+      }
+      if (!this.header.phase && a.device?.phase) {
+        this.header.phase = (a.device.phase || '').toUpperCase();
+      }
 
       return this.emptyRow({
         meter_sr_no: d.serial_number || '',
         meter_make: d.make || '',
         meter_capacity: d.capacity || '',
+        meter_type: d.meter_type || null,
         assignment_id: a.id ?? 0,
         device_id: d.id ?? a.device_id ?? 0,
         _open: false,
@@ -961,7 +1351,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     this.showBanner('success', `${newRows.length} device(s) added to the table.`);
   }
 
-  // ----- submit flow -----
   async confirmSubmitFromModal() {
     await this.doSubmit();
   }
@@ -980,123 +1369,10 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       next: async (_resp: any) => {
         this.submitting = false;
 
-        const labFromResp = _resp?.lab_info || _resp?.lab || null;
-        const effLab = labFromResp || this.labInfo || {};
-
-        // ✅ UPDATED: pick a safe date from first filled row (prevents crash)
-        const firstRowDate =
-          this.rows.find((r) => (r.meter_sr_no || '').trim())?.date_of_testing || null;
-
-        const hdr: SolarHeader = {
-          location_code: this.header.location_code,
-          location_name: this.header.location_name,
-          testMethod: this.testMethod,
-          testStatus: this.testStatus,
-          testing_bench: this.header.testing_bench || this.testing_bench || '-',
-          testing_user: this.header.testing_user || this.testing_user || '-',
-          approving_user: this.header.approving_user || this.approving_user || '-',
-
-          // ✅ FIX
-          date: firstRowDate
-            ? this.isoOn(firstRowDate).split('T')[0]
-            : new Date().toISOString().slice(0, 10),
-
-          lab_name:
-            (effLab as any)?.lab_pdfheader_name ||
-            (effLab as any)?.lab_name ||
-            this.labInfo?.lab_name ||
-            '-',
-          lab_address:
-            (effLab as any)?.address ||
-            (effLab as any)?.address_line ||
-            this.labInfo?.address ||
-            '-',
-          lab_email: (effLab as any)?.email || this.labInfo?.email || '-',
-          lab_phone: (effLab as any)?.phone || this.labInfo?.phone || '-',
-          leftLogoUrl:
-            (effLab as any)?.left_logo_url ||
-            this.leftLogoUrl ||
-            '/assets/icons/wzlogo.png',
-          rightLogoUrl:
-            (effLab as any)?.right_logo_url ||
-            this.rightLogoUrl ||
-            '/assets/icons/wzlogo.png'
-        };
-
-        const rows: SolarRow[] = (this.rows || [])
-          .filter((r) => (r.meter_sr_no || '').trim())
-          .map((r) => ({
-            certificate_no: r.certificate_no,
-            consumer_name: r.consumer_name,
-            address: r.address,
-            meter_make: r.meter_make,
-            meter_sr_no: r.meter_sr_no,
-            meter_capacity: r.meter_capacity,
-            date_of_testing: r.date_of_testing || null,
-            testing_fees: r.testing_fees || '-',
-            mr_no: r.mr_no || null,
-            mr_date: r.mr_date || null,
-            ref_no: r.ref_no || null,
-
-            starting_reading: this.numOrNull(r.starting_reading),
-            final_reading_r: this.numOrNull(r.final_reading_r),
-            final_reading_e: this.numOrNull(r.final_reading_e),
-            difference: this.numOrNull(r.difference),
-
-            start_reading_import: this.numOrNull(r.start_reading_import),
-            final_reading__import: this.numOrNull(r.final_reading__import),
-            difference__import: this.numOrNull(r.difference__import),
-
-            start_reading_export: this.numOrNull(r.start_reading_export),
-            final_reading_export: this.numOrNull(r.final_reading_export),
-            difference_export: this.numOrNull(r.difference_export),
-
-            final_Meter_Difference: this.numOrNull(r.final_Meter_Difference),
-
-            import_ref_start_reading: this.numOrNull(r.import_ref_start_reading),
-            import_ref_end_reading: this.numOrNull(r.import_ref_end_reading),
-            error_percentage_import: this.numOrNull(r.error_percentage_import),
-
-            export_ref_start_reading: this.numOrNull(r.export_ref_start_reading),
-            export_ref_end_reading: this.numOrNull(r.export_ref_end_reading),
-            error_percentage_export: this.numOrNull(r.error_percentage_export),
-
-            shunt_reading_before_test: this.numOrNull(r.shunt_reading_before_test),
-            shunt_reading_after_test: this.numOrNull(r.shunt_reading_after_test),
-            shunt_ref_start_reading: this.numOrNull(r.shunt_ref_start_reading),
-            shunt_ref_end_reading: this.numOrNull(r.shunt_ref_end_reading),
-            shunt_error_percentage: this.numOrNull(r.shunt_error_percentage),
-
-            nutral_reading_before_test: this.numOrNull(r.nutral_reading_before_test),
-            nutral_reading_after_test: this.numOrNull(r.nutral_reading_after_test),
-            nutral_ref_start_reading: this.numOrNull(r.nutral_ref_start_reading),
-            nutral_ref_end_reading: this.numOrNull(r.nutral_ref_end_reading),
-            nutral_error_percentage: this.numOrNull(r.nutral_error_percentage),
-
-            starting_current_test: r.shunt_current_test || r.nutral_current_test || null,
-            creep_test: r.shunt_creep_test || r.nutral_creep_test || null,
-            dial_test: r.shunt_dail_test || r.nutral_dail_test || null,
-
-            remark: r.remark || r.final_remarks || null,
-            final_remark: r.final_remarks || null,
-            test_result: r.test_result || null,
-
-            physical_condition_of_device: r.physical_condition_of_device || null,
-            seal_status: r.seal_status || null,
-            meter_glass_cover: r.meter_glass_cover || null,
-            terminal_block: r.terminal_block || null,
-            meter_body: r.meter_body || null
-          }));
-
         this.showBanner('success', 'Batch submitted successfully!');
 
-        // ✅ UPDATED: catch ANY pdf error and show in console + banner
         try {
-          if (this.pdfMode === 'print') {
-            await this.pdfSvc.print(hdr, rows);
-          } else {
-            await this.pdfSvc.download(hdr, rows, 'SOLAR_NETMETER_CERTIFICATES.pdf');
-          }
+          await this.generatePdfByMeterType(_resp);
 
           this.showBanner(
             'success',
@@ -1123,7 +1399,6 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     });
   }
 
-  // ----- banner helpers -----
   showBanner(
     type: 'success' | 'error' | 'warning' | 'info',
     message: string,
@@ -1140,6 +1415,7 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
       this.banner._t = setTimeout(() => this.clearBanner(), autoCloseMs);
     }
   }
+
   clearBanner() {
     if (this.banner._t) {
       clearTimeout(this.banner._t);

@@ -238,7 +238,7 @@
         </div>
       </div>
 
-      <div class="col-md-12">
+      <div class="col-md-6">
         <div class="card shadow-sm border-0">
           <div class="card-header fw-semibold" style="background-color: rgb(71, 175, 124);color: whitesmoke;">OIC Users Summary</div>
           <div class="card-body table-responsive">
@@ -246,10 +246,10 @@
               <thead class="table-light">
                 <tr>
                   <th>Name</th>
-                  <th>Assigned By User</th>
+                  <th>Assigned</th>
                   <th>Not Assigned</th>
                   <th>Approved</th>
-                  <th>Pending Approval</th>
+                  <th>Pending</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,7 +269,7 @@
         </div>
       </div>
 
-      <div class="col-md-12">
+      <div class="col-md-6">
         <div class="card shadow-sm border-0">
           <div class="card-header fw-semibold" style="background-color: rgb(71, 175, 124);color: whitesmoke;">Store Users Summary</div>
           <div class="card-body table-responsive">
@@ -279,8 +279,6 @@
                   <th>Name</th>
                   <th>Inwarded By User</th>
                   <th>Dispatched By User</th>
-                  <th>Pending Assignment</th>
-                  <th>Pending Dispatch After Approval</th>
                 </tr>
               </thead>
               <tbody>
@@ -288,8 +286,6 @@
                   <td>{{ u.name }}</td>
                   <td>{{ u.inwarded_by_me }}</td>
                   <td>{{ u.dispatched_by_me }}</td>
-                  <td>{{ u.pending_assignment }}</td>
-                  <td>{{ u.pending_dispatch_after_approval }}</td>
                 </tr>
                 <tr *ngIf="(mainData.userwise?.store_users?.length || 0) === 0">
                   <td colspan="5" class="text-center text-muted">No records</td>
