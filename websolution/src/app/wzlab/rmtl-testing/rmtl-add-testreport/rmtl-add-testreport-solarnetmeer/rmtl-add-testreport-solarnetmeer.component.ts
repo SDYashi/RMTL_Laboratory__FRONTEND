@@ -174,11 +174,11 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   header = {
     location_code: '',
     location_name: '',
-    testing_bench: '-',
-    testing_user: '-',
-    approving_user: '-',
-    date: '-',
-    phase: '-'
+    testing_bench: '',
+    testing_user: '',
+    approving_user: '',
+    date: '',
+    phase: ''
   };
 
   test_methods: any[] = [];
@@ -495,6 +495,8 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
   get unknownCount() {
     return (this.rows ?? []).filter((r) => !!r.notFound).length;
   }
+
+
 
   private emptyRow(seed?: Partial<CertRow>): CertRow {
     return {
@@ -1306,19 +1308,33 @@ private async generatePdfByMeterType(resp: any): Promise<void> {
       return;
     }
 
+    const isBlank = (v: any) => v === null || v === undefined || String(v).trim() === '' || v === '-';
+
     const newRows = chosen.map((a) => {
       const d = a.device || ({} as MeterDevice);
-      if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
-      if (!this.header.location_name) this.header.location_name = a.device?.location_name ?? '';
-      if (!this.header.testing_bench) this.header.testing_bench = a.testing_bench?.bench_name ?? '';
-      if (!this.header.testing_user) {
+
+      if (isBlank(this.header.location_code)) {
+        this.header.location_code = a.device?.location_code ?? '';
+      }
+
+      if (isBlank(this.header.location_name)) {
+        this.header.location_name = a.device?.location_name ?? '';
+      }
+
+      if (isBlank(this.header.testing_bench)) {
+        this.header.testing_bench = a.testing_bench?.bench_name ?? '';
+      }
+
+      if (isBlank(this.header.testing_user)) {
         this.header.testing_user = a.user_assigned?.name || a.user_assigned?.username || '';
       }
-      if (!this.header.approving_user) {
+
+      if (isBlank(this.header.approving_user)) {
         this.header.approving_user =
           a.assigned_by_user?.name || a.assigned_by_user?.username || '';
       }
-      if (!this.header.phase && a.device?.phase) {
+
+      if (isBlank(this.header.phase) && a.device?.phase) {
         this.header.phase = (a.device.phase || '').toUpperCase();
       }
 
@@ -1333,6 +1349,10 @@ private async generatePdfByMeterType(resp: any): Promise<void> {
         notFound: false
       });
     });
+
+    this.testing_bench = this.header.testing_bench || '-';
+    this.testing_user = this.header.testing_user || '-';
+    this.approving_user = this.header.approving_user || '-';
 
     if (this.asgPicker.replaceExisting) {
       this.rows = newRows.length ? newRows : [this.emptyRow()];
