@@ -802,11 +802,11 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
           }));
 
         try {
-          await this.pdfSvc.download(
-            hdr,
-            rows,
-            `SOLAR_GENERATIONMETER_CERTIFICATES_${hdr.date}.pdf`
-          );
+          // await this.pdfSvc.download(
+          //   hdr,
+          //   rows,
+          //   `SOLAR_GENERATIONMETER_CERTIFICATES_${hdr.date}.pdf`
+          // );
           this.showBanner(
             'success',
             'Certificates generated and downloaded.'

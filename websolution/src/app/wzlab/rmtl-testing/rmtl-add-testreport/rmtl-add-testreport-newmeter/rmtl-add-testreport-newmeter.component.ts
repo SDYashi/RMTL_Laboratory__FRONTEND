@@ -690,7 +690,7 @@ export class RmtlAddTestreportNewmeterComponent implements OnInit {
     this.api.postTestReports(this.payload).subscribe({
       next: async () => {
         this.submitting = false;
-        await this.generatePdfAndNotify();
+        // await this.generatePdfAndNotify();
         this.rows = [this.emptyRow()];
         this.batch.rows = this.rows;
         this.closeModal();

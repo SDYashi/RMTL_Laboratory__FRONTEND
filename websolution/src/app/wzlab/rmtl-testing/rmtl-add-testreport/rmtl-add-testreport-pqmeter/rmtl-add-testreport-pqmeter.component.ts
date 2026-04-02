@@ -563,7 +563,7 @@ private confirmSubmit() {
       // ✅ 2) GENERATE LOCAL PDF USING SNAPSHOT (rows still present)
       try {
         if (pdfSnap.rows.length) {
-          await this.pqPdf.download(pdfSnap.rows, pdfSnap.meta, pdfSnap.logos);
+          // await this.pqPdf.download(pdfSnap.rows, pdfSnap.meta, pdfSnap.logos);
         } else {
           console.warn('PQ PDF skipped: no rows in snapshot');
         }

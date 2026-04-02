@@ -713,9 +713,9 @@ export class RmtlAddTestreportP4onmComponent implements OnInit {
           }));
 
         try {
-          await this.pdfSvc.downloadFromBatch(header, rows, {
-            fileName: `P4_ONM_${header.date}.pdf`
-          });
+          // await this.pdfSvc.downloadFromBatch(header, rows, {
+          //   fileName: `P4_ONM_${header.date}.pdf`
+          // });
           this.inlineInfo = 'Batch Report submitted and PDF downloaded successfully!';
         } catch {
           this.inlineInfo = 'Batch Report submitted successfully!';

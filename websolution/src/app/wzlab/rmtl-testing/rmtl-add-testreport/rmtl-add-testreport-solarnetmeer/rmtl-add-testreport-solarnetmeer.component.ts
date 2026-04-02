@@ -764,6 +764,93 @@ export class RmtlAddTestreportSolarnetmeerComponent implements OnInit {
     }
   }
 
+  recomputeSmartMeter(i: number) {
+  const r = this.rows[i];
+
+  const srImp = this.numOrNull(r.dial_sr_import);
+  const srExp = this.numOrNull(r.dial_sr_export);
+  const frImp = this.numOrNull(r.dial_fr_import);
+  const frExp = this.numOrNull(r.dial_fr_export);
+  const dosageImp = this.numOrNull(r.dial_dosage_import);
+  const dosageExp = this.numOrNull(r.dial_dosage_export);
+
+  // Net Import Export = Final Import - Final Export
+  if (frImp != null || frExp != null) {
+    r.net_imp_export = String(this.round4((frImp ?? 0) - (frExp ?? 0)));
+  } else {
+    r.net_imp_export = null;
+  }
+
+  // Dial Result Import %
+  if (srImp != null && frImp != null && dosageImp != null && dosageImp !== 0) {
+    const actualImp = frImp - srImp;
+    r.dial_result_import = String(
+      this.round2(((actualImp - dosageImp) / dosageImp) * 100)
+    );
+  } else {
+    r.dial_result_import = null;
+  }
+
+  // Dial Result Export %
+  if (srExp != null && frExp != null && dosageExp != null && dosageExp !== 0) {
+    const actualExp = frExp - srExp;
+    r.dial_result_export = String(
+      this.round2(((actualExp - dosageExp) / dosageExp) * 100)
+    );
+  } else {
+    r.dial_result_export = null;
+  }
+}
+
+recomputeAll(i: number) {
+  const r = this.rows[i];
+  if (this.isSmartSolarMeter(r)) {
+    this.recomputeSmartMeter(i);
+  } else {
+    this.recomputeIE(i);
+  }
+}
+
+private mapSmartPdfRows(rows: CertRow[]): SmartSolarRow[] {
+  return rows.map((r) => ({
+    ...this.mapCommonPdfRow(r),
+
+    import_upf_100_imax: this.numOrNull(r.import_upf_100_imax),
+    import_upf_100_ib: this.numOrNull(r.import_upf_100_ib),
+    import_upf_5_ib: this.numOrNull(r.import_upf_5_ib),
+
+    import_lag_05_100_imax: this.numOrNull(r.import_lag_05_100_imax),
+    import_lag_05_100_ib: this.numOrNull(r.import_lag_05_100_ib),
+    import_lag_05_10_ib: this.numOrNull(r.import_lag_05_10_ib),
+
+    import_lead_08_100_imax: this.numOrNull(r.import_lead_08_100_imax),
+    import_lead_08_100_ib: this.numOrNull(r.import_lead_08_100_ib),
+    import_lead_08_10_ib: this.numOrNull(r.import_lead_08_10_ib),
+
+    export_upf_100_imax: this.numOrNull(r.export_upf_100_imax),
+    export_upf_100_ib: this.numOrNull(r.export_upf_100_ib),
+    export_upf_5_ib: this.numOrNull(r.export_upf_5_ib),
+
+    export_lag_05_100_imax: this.numOrNull(r.export_lag_05_100_imax),
+    export_lag_05_100_ib: this.numOrNull(r.export_lag_05_100_ib),
+    export_lag_05_10_ib: this.numOrNull(r.export_lag_05_10_ib),
+
+    export_lead_08_100_imax: this.numOrNull(r.export_lead_08_100_imax),
+    export_lead_08_100_ib: this.numOrNull(r.export_lead_08_100_ib),
+    export_lead_08_10_ib: this.numOrNull(r.export_lead_08_10_ib),
+
+    dial_sr_import: this.numOrNull(r.dial_sr_import),
+    dial_sr_export: this.numOrNull(r.dial_sr_export),
+    dial_fr_import: this.numOrNull(r.dial_fr_import),
+    dial_fr_export: this.numOrNull(r.dial_fr_export),
+    dial_dosage_import: this.numOrNull(r.dial_dosage_import),
+    dial_dosage_export: this.numOrNull(r.dial_dosage_export),
+    dial_result_import: this.numOrNull(r.dial_result_import),
+    dial_result_export: this.numOrNull(r.dial_result_export),
+
+    net_imp_exp: this.numOrNull(r.net_imp_export)
+  }));
+}
   recomputeChannel(i: number) {
     const r = this.rows[i];
 
@@ -1142,46 +1229,6 @@ private mapNormalPdfRows(rows: CertRow[]): NormalSolarRow[] {
   }));
 }
 
-  private mapSmartPdfRows(rows: CertRow[]): SmartSolarRow[] {
-    return rows.map((r) => ({
-      ...this.mapCommonPdfRow(r),
-
-      import_upf_100_imax: this.numOrNull(r.import_upf_100_imax),
-      import_upf_100_ib: this.numOrNull(r.import_upf_100_ib),
-      import_upf_5_ib: this.numOrNull(r.import_upf_5_ib),
-
-      import_lag_05_100_imax: this.numOrNull(r.import_lag_05_100_imax),
-      import_lag_05_100_ib: this.numOrNull(r.import_lag_05_100_ib),
-      import_lag_05_10_ib: this.numOrNull(r.import_lag_05_10_ib),
-
-      import_lead_08_100_imax: this.numOrNull(r.import_lead_08_100_imax),
-      import_lead_08_100_ib: this.numOrNull(r.import_lead_08_100_ib),
-      import_lead_08_10_ib: this.numOrNull(r.import_lead_08_10_ib),
-
-      export_upf_100_imax: this.numOrNull(r.export_upf_100_imax),
-      export_upf_100_ib: this.numOrNull(r.export_upf_100_ib),
-      export_upf_5_ib: this.numOrNull(r.export_upf_5_ib),
-
-      export_lag_05_100_imax: this.numOrNull(r.export_lag_05_100_imax),
-      export_lag_05_100_ib: this.numOrNull(r.export_lag_05_100_ib),
-      export_lag_05_10_ib: this.numOrNull(r.export_lag_05_10_ib),
-
-      export_lead_08_100_imax: this.numOrNull(r.export_lead_08_100_imax),
-      export_lead_08_100_ib: this.numOrNull(r.export_lead_08_100_ib),
-      export_lead_08_10_ib: this.numOrNull(r.export_lead_08_10_ib),
-
-      dial_sr_import: this.numOrNull(r.dial_sr_import),
-      dial_sr_export: this.numOrNull(r.dial_sr_export),
-      dial_fr_import: this.numOrNull(r.dial_fr_import),
-      dial_fr_export: this.numOrNull(r.dial_fr_export),
-      dial_dosage_import: this.numOrNull(r.dial_dosage_import),
-      dial_dosage_export: this.numOrNull(r.dial_dosage_export),
-      dial_result_import: this.numOrNull(r.dial_result_import),
-      dial_result_export: this.numOrNull(r.dial_result_export),
-
-      net_imp_exp: this.numOrNull(r.net_imp_export)
-    }));
-  }
 
 private async generatePdfByMeterType(resp: any): Promise<void> {
   const hdr = this.buildPdfHeader(resp);
@@ -1392,7 +1439,7 @@ private async generatePdfByMeterType(resp: any): Promise<void> {
         this.showBanner('success', 'Batch submitted successfully!');
 
         try {
-          await this.generatePdfByMeterType(_resp);
+          // await this.generatePdfByMeterType(_resp);
 
           this.showBanner(
             'success',

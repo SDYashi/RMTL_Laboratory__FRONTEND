@@ -599,7 +599,7 @@ export class RmtlAddTestreportOldagainstmtrComponent implements OnInit {
       next: async () => {
         this.submitting = false;
         try {
-          await this.downloadPdfFromBatch();
+          // await this.downloadPdfFromBatch();
           this.alertSuccess = 'Batch Report submitted and PDF downloaded successfully!';
         } catch (e) {
           console.error('PDF generation failed:', e);

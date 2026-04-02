@@ -350,6 +350,7 @@ private isSmartSolarNetMeter(rec: any): boolean {
       const assignment0 = first.assignment || {};
       const lab0 = first.lab || {};
       const bench0 = first.testing_bench || {};
+      const user0 = first.user || {};
 
       const phase_name = d0.phase || t0.phase || '';
 
@@ -359,8 +360,13 @@ private isSmartSolarNetMeter(rec: any): boolean {
         assignment0.bench?.bench_name ||
         '';
 
-      const testUserName = await this.getUserNameById(assignment0.user_id);
-      const approvingUser = await this.getUserNameById(assignment0.assigned_by);
+      const testUserName =
+        S(user0.name || user0.username || '') ||
+        await this.getUserNameById(assignment0.user_id);
+
+      const approvingUser =
+        S(t0.user_id ? await this.getUserNameById(t0.user_id) : '' ) ||
+        (assignment0.assigned_by ? await this.getUserNameById(assignment0.assigned_by) : '');
 
       const testmethod = S(t0.test_method || 'NA').toUpperCase();
       const testStatus = S(t0.test_status || 'NA').toUpperCase();

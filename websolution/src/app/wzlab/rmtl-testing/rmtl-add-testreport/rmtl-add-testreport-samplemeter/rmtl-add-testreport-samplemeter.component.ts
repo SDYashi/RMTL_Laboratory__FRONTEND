@@ -575,7 +575,7 @@ export class RmtlAddTestreportSamplemeterComponent implements OnInit {
 
         const url = Array.isArray(res) && res.length ? res[0]?.report_file_url : null;
         this.inlineInfo = url ? `Submitted successfully. PDF URL saved: ${url}` : 'Submitted successfully. PDF URL saved.';
-        this.downloadPdf();
+        // this.downloadPdf();
         this.inlineError = null;
         this.rows = [this.emptyRow()];
         this.selectedPdfFile = null;

@@ -979,7 +979,7 @@ async doSubmit() {
       this.alertSuccess = 'Data saved successfully. Generating PDF...';
       this.alertError = null;
 
-      await this.pdfSvc.download(header, rows);
+      // await this.pdfSvc.download(header, rows);
 
       this.alertSuccess = 'Batch submitted and PDF downloaded successfully!';
       this.alertError = null;

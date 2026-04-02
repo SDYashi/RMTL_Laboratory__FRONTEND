@@ -754,7 +754,7 @@ export class RmtlAddTestreportContestedComponent implements OnInit {
         this.submitting = false;
 
         try {
-          await this.generatePdfNow();
+          // await this.generatePdfNow();
           this.alertSuccess = 'Batch Report submitted and PDF downloaded successfully!';
         } catch {
           this.alertSuccess = 'Batch Report submitted successfully!';

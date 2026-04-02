@@ -794,7 +794,7 @@ confirmAssignPicker() {
         this.setInlineMsg('success', 'Submitted', 'CT Testing report saved. Downloading PDF...');
 
         try {
-          this.downloadPdfNow(true);
+          // this.downloadPdfNow(true);
         } catch (e) {
           console.error('PDF generation failed:', e);
           this.setInlineMsg('warning', 'Saved', 'Saved, but PDF could not be generated.');
