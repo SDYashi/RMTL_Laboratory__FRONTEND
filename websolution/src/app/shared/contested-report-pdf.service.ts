@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 type TDocumentDefinitions = any;
@@ -23,7 +25,7 @@ export interface ContestedReportHeader {
 
   leftLogoUrl?: string;
   rightLogoUrl?: string;
-  report_id?: string; 
+  report_id?: string;
 }
 
 export interface ContestedReportRow {
@@ -89,6 +91,7 @@ export class ContestedReportPdfService {
   // ---------------- Public entrypoints ----------------
   async downloadFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[], opts: ContestedReportPdfOptions = {}): Promise<void> {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'CONTESTED');
     const name = opts.fileName || `CONTESTED_${header.date}.pdf`;
     await new Promise<void>((resolve) =>
       pdfMake.createPdf(doc).download(name, () => resolve())
@@ -97,11 +100,13 @@ export class ContestedReportPdfService {
 
   async openFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[]): Promise<void> {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'CONTESTED');
     pdfMake.createPdf(doc).open();
   }
 
   async printFromBatch(header: ContestedReportHeader, rows: ContestedReportRow[]): Promise<void> {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'CONTESTED');
     pdfMake.createPdf(doc).print();
   }
 
@@ -701,7 +706,7 @@ export class ContestedReportPdfService {
           stack: [
             { text: '\n\nTested by', alignment: 'center', bold: true },
             { text: '\n____________________________', alignment: 'center' },
-            { text: (meta.testing_user || '-').toUpperCase(), alignment: 'center', style: 'small' },
+            { text: signatureNameUpper(resolveReportSignatureNames(meta).testerName), alignment: 'center', style: 'small' },
             { text: 'TESTING ASSISTANT', alignment: 'center', style: 'small' }
           ]
         },
@@ -719,7 +724,7 @@ export class ContestedReportPdfService {
           stack: [
             { text: '\n\nApproved by', alignment: 'center', bold: true },
             { text: '\n____________________________', alignment: 'center' },
-            { text: (meta.approving_user || '-').toUpperCase(), alignment: 'center', style: 'small' },
+            { text: signatureNameUpper(resolveReportSignatureNames(meta).approverName), alignment: 'center', style: 'small' },
             { text: 'ASSISTANT ENGINEER', alignment: 'center', style: 'small' }
           ]
         }

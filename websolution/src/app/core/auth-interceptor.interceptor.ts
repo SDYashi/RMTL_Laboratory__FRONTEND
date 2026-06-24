@@ -9,6 +9,7 @@ import {
 import { catchError, finalize, Observable, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { LoadingService } from '../services/loading.service';
+import { PUBLIC_API_REQUEST } from './public-api-request.context';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
@@ -26,6 +27,7 @@ export class AuthInterceptor implements HttpInterceptor {
     const isFormData = req.body instanceof FormData;
     const hasBody = req.body != null; // safer than checking method
     const isLogin = /\/token(?:$|[/?#])/i.test(req.url);
+    const isPublicRequest = req.context.get(PUBLIC_API_REQUEST);
 
     const setHeaders: Record<string, string> = {};
 
@@ -45,7 +47,7 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     // Authorization: add if we have a token, not login, and not already set
-    if (token && !isLogin && !req.headers.has('Authorization')) {
+    if (token && !isLogin && !isPublicRequest && !req.headers.has('Authorization')) {
       setHeaders['Authorization'] = `Bearer ${token}`;
     }
 
@@ -58,7 +60,7 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(cloned).pipe(
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
+        if (error.status === 401 && !isPublicRequest) {
           this.router.navigate(['/wzlogin']);
         }
         return throwError(() => error);

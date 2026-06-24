@@ -1,5 +1,6 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { ApiServicesService } from 'src/app/services/api-services.service';
+import { AuthService } from 'src/app/core/auth.service';
 import {
   InwardReceiptPdfService,
   InwardReceiptData,
@@ -8,6 +9,8 @@ import {
 } from 'src/app/shared/inward-receipt-pdf.service';
 
 declare var bootstrap: any;
+declare var Html5Qrcode: any;
+declare var Html5QrcodeSupportedFormats: any;
 
 interface DeviceRow {
   serial_number: string;
@@ -39,22 +42,28 @@ interface CTRow {
   initiator?: string | null;
 }
 
+type CameraScannerTarget = 'METER' | 'CT';
+type CameraScannerType = 'qr' | 'barcode';
+
 @Component({
   selector: 'app-rmtl-add-devices',
   templateUrl: './rmtl-add-devices.component.html',
   styleUrls: ['./rmtl-add-devices.component.css']
 })
-export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
+export class RmtlAddDevicesComponent implements OnInit, AfterViewInit, OnDestroy {
   // -------- Shared source --------
   office_types: string[] = [];
   selectedSourceType = '';
   selectedSourceName = '';
   filteredSources: any = null;
+  inwardDate = this.todayISO();
+  maxInwardDate = this.todayISO();
 
   // -------- Enums (DB-safe values) --------
   makes: string[] = [];
   capacities: string[] = [];
   phases: string[] = [];
+  private phaseOptionsCache = new Map<string, string[]>();
   meter_categories: string[] = [];
   meter_classes: string[] = [];
   meterTypes: string[] = [];
@@ -120,6 +129,20 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   // Quick manual add
   quick = { serial: '' };
   ctQuick = { serial: '' };
+
+  // Camera / image / USB QR and barcode scanner
+  scannerOpen = false;
+  scannerType: CameraScannerType = 'qr';
+  scannerTarget: CameraScannerTarget = 'METER';
+  hardwareScannerTarget: CameraScannerTarget = 'METER';
+  scannerError = '';
+  scannerStatus = '';
+  scannerBusy = false;
+  private html5Scanner: any = null;
+  private scanHandled = false;
+  private scannerLibraryPromise: Promise<void> | null = null;
+  private readonly scannerElementId = 'rmtl-camera-reader';
+  private readonly scannerLibraryUrl = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
   impkwhs: any;
   currentUserId: any;
   currentLabId: any;
@@ -129,7 +152,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   constructor(
     private deviceService: ApiServicesService,
     private inwardPdf: InwardReceiptPdfService,
-    private authService: ApiServicesService
+    private authService: AuthService
   ) {}
 
   // ---------- Reusable PDF header (matches your branding/screenshot) ----------
@@ -145,12 +168,389 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     logoHeight: 36
   };
 
-  onScan(code: string) {
-    this.quick.serial = code;     // assign scanned value
-    this.quickAddMeter();         // optional: auto process
+  onScan(code: string): void {
+    this.onHardwareScan(code);
   }
 
- 
+  setHardwareScanTarget(target: CameraScannerTarget): void {
+    this.hardwareScannerTarget = target;
+  }
+
+  onHardwareScan(code: string): void {
+    if (this.hardwareScannerTarget === 'CT') {
+      this.onCTScan(code);
+    } else {
+      this.onMeterScan(code);
+    }
+  }
+
+  onMeterScan(code: string): void {
+    const value = this.normaliseScannedValue(code);
+    if (!value) return;
+
+    this.quick.serial = value;
+    this.quickAddMeter();
+  }
+
+  onCTScan(code: string): void {
+    const value = this.normaliseScannedValue(code);
+    if (!value) return;
+
+    this.ctQuick.serial = value;
+    this.quickAddCT();
+  }
+
+  private normaliseScannedValue(code: string): string {
+    const raw = (code || '').trim();
+    if (!raw) return '';
+
+    // Device QR codes may contain a URL or key/value payload. Extract a serial
+    // when present; otherwise retain the complete decoded barcode value.
+    try {
+      const url = new URL(raw);
+      const serial =
+        url.searchParams.get('serial_number') ||
+        url.searchParams.get('serial') ||
+        url.searchParams.get('meter_no') ||
+        url.searchParams.get('device_serial');
+      if (serial) return serial.trim();
+    } catch {
+      // Not a URL; continue with text parsing.
+    }
+
+    const serialMatch = raw.match(
+      /(?:serial(?:_number|\s*no)?|meter(?:_number|\s*no)?|device(?:_serial)?)\s*[:=]\s*([^|,;\r\n]+)/i
+    );
+    return (serialMatch?.[1] || raw).trim();
+  }
+
+  async openCameraScanner(target: CameraScannerTarget, type: CameraScannerType): Promise<void> {
+    await this.stopScannerEngine();
+
+    this.scannerTarget = target;
+    this.scannerType = type;
+    this.hardwareScannerTarget = target;
+    this.scannerError = '';
+    this.scannerStatus = 'Starting camera…';
+    this.scannerBusy = true;
+    this.scanHandled = false;
+    this.scannerOpen = true;
+
+    // startCameraScanner waits until Angular has rendered the modal before
+    // constructing the decoder and requesting the camera.
+    await this.startCameraScanner();
+  }
+
+  async restartCameraScanner(): Promise<void> {
+    this.scannerError = '';
+    this.scannerStatus = 'Restarting camera…';
+    this.scannerBusy = true;
+    this.scanHandled = false;
+
+    await this.stopScannerEngine();
+    await this.startCameraScanner();
+  }
+
+  private isCameraContextAllowed(): boolean {
+    return window.isSecureContext ||
+      location.hostname === 'localhost' ||
+      location.hostname === '127.0.0.1';
+  }
+
+  private async waitForScannerElement(): Promise<HTMLElement> {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const element = document.getElementById(this.scannerElementId);
+      if (element && element.clientWidth > 0) return element;
+    }
+
+    throw new Error('Scanner view is not ready. Close the popup and try again.');
+  }
+
+  private async ensureScannerLibrary(): Promise<void> {
+    if ((window as any).Html5Qrcode) return;
+    if (this.scannerLibraryPromise) return this.scannerLibraryPromise;
+
+    this.scannerLibraryPromise = new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let pollTimer = 0;
+      let timeoutTimer = 0;
+
+      const cleanup = () => {
+        window.clearInterval(pollTimer);
+        window.clearTimeout(timeoutTimer);
+      };
+
+      const succeed = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve();
+      };
+
+      const fail = (message: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(message));
+      };
+
+      // index.html may already contain the deferred script. Polling handles
+      // both an already-running script and a script that finishes after the
+      // scanner button is pressed.
+      pollTimer = window.setInterval(() => {
+        if ((window as any).Html5Qrcode) succeed();
+      }, 100);
+
+      let script = document.getElementById('rmtl-html5-qrcode-script') as HTMLScriptElement | null;
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'rmtl-html5-qrcode-script';
+        script.src = this.scannerLibraryUrl;
+        script.async = true;
+        script.onload = () => {
+          if ((window as any).Html5Qrcode) succeed();
+          else fail('Scanner library loaded without Html5Qrcode.');
+        };
+        script.onerror = () => fail('Scanner library failed to load.');
+        document.head.appendChild(script);
+      } else {
+        script.addEventListener('load', () => {
+          if ((window as any).Html5Qrcode) succeed();
+        }, { once: true });
+        script.addEventListener('error', () => fail('Scanner library failed to load.'), { once: true });
+      }
+
+      timeoutTimer = window.setTimeout(() => {
+        if ((window as any).Html5Qrcode) succeed();
+        else fail('Scanner library loading timed out.');
+      }, 12000);
+    }).finally(() => {
+      if (!(window as any).Html5Qrcode) this.scannerLibraryPromise = null;
+    });
+
+    return this.scannerLibraryPromise;
+  }
+
+  private scannerFormats(): any[] | undefined {
+    const F = (window as any).Html5QrcodeSupportedFormats;
+    if (!F) return undefined;
+
+    if (this.scannerType === 'qr') return [F.QR_CODE];
+
+    return [
+      F.CODE_128,
+      F.CODE_39,
+      F.CODE_93,
+      F.CODABAR,
+      F.EAN_13,
+      F.EAN_8,
+      F.UPC_A,
+      F.UPC_E,
+      F.ITF,
+      F.DATA_MATRIX,
+      F.PDF_417
+    ].filter((value: any) => value !== undefined && value !== null);
+  }
+
+  private createScannerInstance(): any {
+    const Scanner = (window as any).Html5Qrcode;
+    const formats = this.scannerFormats();
+    const config: any = {};
+    if (formats?.length) config.formatsToSupport = formats;
+
+    return new Scanner(this.scannerElementId, config, false);
+  }
+
+  private scannerQrBox(): { width: number; height: number } {
+    const reader = document.getElementById(this.scannerElementId);
+    const availableWidth = Math.max(240, reader?.clientWidth || 320);
+
+    if (this.scannerType === 'barcode') {
+      return {
+        width: Math.min(320, Math.floor(availableWidth * 0.82)),
+        height: 120
+      };
+    }
+
+    const size = Math.min(250, Math.floor(availableWidth * 0.72));
+    return { width: size, height: size };
+  }
+
+  private chooseRearCamera(cameras: any[]): any | null {
+    if (!Array.isArray(cameras) || !cameras.length) return null;
+
+    return cameras.find((camera: any) =>
+      /back|rear|environment|world|camera 0/i.test(String(camera?.label || ''))
+    ) || cameras[cameras.length - 1] || cameras[0];
+  }
+
+  private async startWithPreferredCamera(
+    scanConfig: any,
+    onSuccess: (decodedText: string) => void,
+    onFailure: () => void
+  ): Promise<void> {
+    // Firefox is more reliable with the simple facingMode string than with a
+    // nested { ideal: ... } constraint. Keep the first request minimal so an
+    // unsupported aspect ratio cannot prevent the camera from opening.
+    try {
+      await this.html5Scanner.start(
+        { facingMode: 'environment' },
+        scanConfig,
+        onSuccess,
+        onFailure
+      );
+      return;
+    } catch (preferredCameraError) {
+      await this.stopScannerEngine();
+
+      // Fallback for phones that ignore facingMode: ask for the camera list,
+      // choose the rear camera when labels are available, and start by id.
+      const Scanner = (window as any).Html5Qrcode;
+      const cameras = await Scanner.getCameras();
+      const selected = this.chooseRearCamera(cameras);
+      if (!selected?.id) throw preferredCameraError;
+
+      this.html5Scanner = this.createScannerInstance();
+      await this.html5Scanner.start(
+        selected.id,
+        scanConfig,
+        onSuccess,
+        onFailure
+      );
+    }
+  }
+
+  private async startCameraScanner(): Promise<void> {
+    try {
+      if (!this.isCameraContextAllowed()) {
+        throw new Error('Camera access requires HTTPS (or localhost).');
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera access is not available in this browser.');
+      }
+
+      await this.ensureScannerLibrary();
+      const reader = await this.waitForScannerElement();
+      await this.stopScannerEngine();
+      reader.replaceChildren();
+
+      this.html5Scanner = this.createScannerInstance();
+
+      const scanConfig: any = {
+        fps: 10,
+        qrbox: this.scannerQrBox(),
+        disableFlip: false
+      };
+
+      const onSuccess = (decodedText: string) => void this.handleCameraScanSuccess(decodedText);
+      const onFailure = () => { /* normal while no readable code is in frame */ };
+
+      await this.startWithPreferredCamera(scanConfig, onSuccess, onFailure);
+
+      this.scannerStatus = `Camera active — hold the ${this.scannerType === 'qr' ? 'QR code' : 'barcode'} steady inside the frame.`;
+      this.scannerBusy = false;
+    } catch (error: any) {
+      console.error('Camera scanner error:', error);
+      await this.stopScannerEngine();
+      this.scannerBusy = false;
+      this.scannerStatus = '';
+      this.scannerError = this.cameraErrorMessage(error);
+    }
+  }
+
+  private cameraErrorMessage(error: any): string {
+    const name = String(error?.name || '');
+    const message = String(error?.message || error || '');
+
+    if (name === 'NotAllowedError' || /permission|denied|not allowed/i.test(message)) {
+      return 'Camera permission was denied. Allow camera access for this site in Firefox, then press Retry Camera.';
+    }
+    if (name === 'NotFoundError' || /no camera|not found|requested device not found/i.test(message)) {
+      return 'No camera was found. Connect a camera or use Scan Image / USB scanner.';
+    }
+    if (name === 'NotReadableError' || name === 'AbortError' || /in use|could not start video|starting video failed|hardware/i.test(message)) {
+      return 'Firefox could not start the camera. Close other camera apps, wait two seconds, and press Retry Camera.';
+    }
+    if (name === 'OverconstrainedError' || /constraint|overconstrained/i.test(message)) {
+      return 'The preferred rear-camera setting is not supported. Press Retry Camera to use another camera.';
+    }
+    if (/HTTPS|secure context/i.test(message)) {
+      return 'Camera scanning requires HTTPS. Open the application through its HTTPS URL.';
+    }
+    if (/library|Html5Qrcode/i.test(message)) {
+      return 'The QR/barcode decoder could not load. Check access to the scanner script and press Retry Camera.';
+    }
+    if (/view is not ready/i.test(message)) {
+      return 'The scanner popup was not ready. Close it and open the scanner again.';
+    }
+
+    // Keep the actual browser error visible during rollout. This is much more
+    // useful than a generic permission message when a specific phone fails.
+    const detail = [name, message].filter(Boolean).join(': ');
+    return detail
+      ? `Unable to start scanning (${detail}). Press Retry Camera or use Scan Image.`
+      : 'Unable to start scanning. Press Retry Camera or use Scan Image / USB scanner.';
+  }
+
+  async scanCodeImage(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    this.scannerError = '';
+    this.scannerStatus = 'Reading image…';
+    this.scannerBusy = true;
+    this.scanHandled = false;
+
+    try {
+      await this.ensureScannerLibrary();
+      await this.stopScannerEngine();
+      this.html5Scanner = this.createScannerInstance();
+      const decodedText = await this.html5Scanner.scanFile(file, true);
+      await this.handleCameraScanSuccess(decodedText);
+    } catch (error) {
+      console.error('Image scan error:', error);
+      this.scannerBusy = false;
+      this.scannerStatus = '';
+      this.scannerError = 'No readable QR code or barcode was found in that image. Use a sharper, well-lit image and try again.';
+    }
+  }
+
+  private async handleCameraScanSuccess(value: string): Promise<void> {
+    if (this.scanHandled) return;
+    const scannedValue = this.normaliseScannedValue(value);
+    if (!scannedValue) return;
+
+    this.scanHandled = true;
+    const target = this.scannerTarget;
+    this.scannerStatus = `Code detected: ${scannedValue}`;
+    await this.closeCameraScanner(false);
+
+    if (target === 'CT') this.onCTScan(scannedValue);
+    else this.onMeterScan(scannedValue);
+  }
+
+  private async stopScannerEngine(): Promise<void> {
+    const scanner = this.html5Scanner;
+    this.html5Scanner = null;
+    if (!scanner) return;
+
+    try { await scanner.stop(); } catch { /* scanner may not have started */ }
+    try { await scanner.clear(); } catch { /* element may already be clear */ }
+  }
+
+  async closeCameraScanner(clearMessage = true): Promise<void> {
+    await this.stopScannerEngine();
+    this.scannerOpen = false;
+    this.scannerBusy = false;
+    this.scanHandled = false;
+    if (clearMessage) {
+      this.scannerError = '';
+      this.scannerStatus = '';
+    }
+  }
 
   // ---------- Lifecycle ----------
   ngOnInit(): void {
@@ -161,6 +561,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.makes = data?.makes || [];
         this.capacities = data?.capacities || [];
         this.phases = data?.phases || [];
+        this.phaseOptionsCache.clear();
         this.meter_categories = data?.meter_categories || [];
         this.meterTypes = data?.meter_types || [];
         this.meter_classes = data?.meter_classes || [];
@@ -190,6 +591,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           ct_class: this.ct_classes[0] || '',
           ct_ratio: this.ct_ratios[0] || '',
           capacity: this.capacities[0] || '',
+          phase: 'THREE_PHASE_CT',
           connection_type: this.connection_types[0] || 'LT',
           device_testing_purpose: this.meterDefaultPurpose,
           initiator: this.initiators[0] || 'CIS'
@@ -231,7 +633,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           { key: 'ct_ratio',               label: 'CT Ratio',    options: this.ct_ratios },
           { key: 'device_testing_purpose', label: 'Purpose',     options: this.device_testing_purpose },
           { key: 'initiator',              label: 'Initiator',   options: this.initiators }
-          
+
         ];
 
         // lab_id from localStorage / token
@@ -286,9 +688,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
     }
   }
 
-  toYMD(arg0: Date): Date {
-    throw new Error('Method not implemented.');
+  toYMD(date: Date): string {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
   }
+
+  trackByValue = (_: number, value: string): string => value;
+  trackByDefinition = (_: number, item: { key: string }): string => item.key;
+  trackBySerial = (index: number): number => index;
 
   onDefaultsConnectionTypeChange(): void {
     const conn = this.serialRange.connection_type;
@@ -302,6 +709,10 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     const modalEl = document.getElementById('alertModal');
     if (modalEl) this.alertInstance = new bootstrap.Modal(modalEl);
+  }
+
+  ngOnDestroy(): void {
+    void this.closeCameraScanner();
   }
 
   // ---------- Source fetch ----------
@@ -581,6 +992,10 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       return;
     }
     if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
+    if (!this.inwardDate) {
+      this.showAlert('Missing Inward Date', 'Please select an inward date.');
+      return;
+    }
 
     const cleaned = this.devices
       .map((d: DeviceRow, idx: number) => ({
@@ -644,10 +1059,11 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       office_type: this.selectedSourceType || null,
       location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
       location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      // date_of_entry: this.todayISO(),
+      inward_date: this.inwardDate,
+      date_of_entry: this.inwardDate,
       initiator: d.initiator,
       phases: d.phases
-      
+
     }));
 
     this.deviceService.addnewdevice(payload).subscribe({
@@ -670,13 +1086,13 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         }));
 
         const receipt: InwardReceiptData = {
-          ...this.buildLabHeaderForReceipt(),   
+          ...this.buildLabHeaderForReceipt(),
           lab_id: created?.[0]?.lab_id || '',
           office_type: created?.[0]?.office_type || '',
           location_code: created?.[0]?.location_code || '',
           location_name: created?.[0]?.location_name || '',
           inward_no: inwardNo,
-          date_of_entry: created?.[0]?.inward_date || '',
+          date_of_entry: created?.[0]?.inward_date || this.inwardDate,
           device_type: 'METER',
           total: items.length,
           items,
@@ -686,7 +1102,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.inwardPdf.download(
           receipt,
           {
-            fileName: `Inward_Receipt_METER_${this.todayISO()}.pdf`,
+            fileName: `Inward_Receipt_METER_${this.inwardDate}.pdf`,
             header: this.pdfHeader,
             showItemsTable: true
           }
@@ -707,6 +1123,10 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       return;
     }
     if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
+    if (!this.inwardDate) {
+      this.showAlert('Missing Inward Date', 'Please select an inward date.');
+      return;
+    }
 
     const cleaned = this.cts
       .map((ct: CTRow, idx: number) => ({
@@ -756,8 +1176,9 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
       office_type: this.selectedSourceType || null,
       location_code: this.filteredSources?.code || this.filteredSources?.location_code || null,
       location_name: this.filteredSources?.name || this.filteredSources?.location_name || null,
-      // date_of_entry: this.todayISO(),
-      initiator: ct.initiator,      
+      inward_date: this.inwardDate,
+      date_of_entry: this.inwardDate,
+      initiator: ct.initiator,
       phases: "THREE_PHASE_CT"
     }));
 
@@ -785,7 +1206,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
           location_code: created?.[0]?.location_code || '',
           location_name: created?.[0]?.location_name || '',
           inward_no: inwardNo,
-          // date_of_entry: this.todayISO(),
+          date_of_entry: created?.[0]?.inward_date || this.inwardDate,
           device_type: 'CT',
           total: items.length,
           items,
@@ -795,7 +1216,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
         this.inwardPdf.download(
           receipt,
           {
-            fileName: `Inward_Receipt_CT_${created?.[0]?.inward_date || ''}.pdf`,
+            fileName: `Inward_Receipt_CT_${created?.[0]?.inward_date || this.inwardDate}.pdf`,
             header: this.pdfHeader,
             showItemsTable: true
           }
@@ -878,8 +1299,14 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit {
   };
 
   getPhaseOptions(connType?: string): string[] {
+    const key = connType || '__ALL__';
+    const cached = this.phaseOptionsCache.get(key);
+    if (cached) return cached;
+
     const base = (connType && this.PhaseByConn[connType]) ? this.PhaseByConn[connType] : this.phases;
-    return base.filter(p => this.phases.includes(p));
+    const options = base.filter(p => this.phases.includes(p));
+    this.phaseOptionsCache.set(key, options);
+    return options;
   }
 
   private coercePhaseForConn(connType: string, currentPhase?: string | null): string {

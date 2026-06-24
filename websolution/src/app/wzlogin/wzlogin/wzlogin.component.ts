@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from 'src/app/core/auth.service';
 import { ApiServicesService } from 'src/app/services/api-services.service';
 
@@ -9,7 +9,7 @@ import { ApiServicesService } from 'src/app/services/api-services.service';
   templateUrl: './wzlogin.component.html',
   styleUrls: ['./wzlogin.component.css']
 })
-export class WzloginComponent {
+export class WzloginComponent implements OnInit, OnDestroy {
   model = {
     username: '',
     password: '',
@@ -18,9 +18,40 @@ export class WzloginComponent {
   showPassword = false;
   isLoading = false;
   loginerror = '';
+  backgroundReady = false;
+  private backgroundImage?: HTMLImageElement;
   // authService: any;
 
-  constructor(private apiservice: ApiServicesService, private authService: AuthService, private router: Router) {}
+  constructor(
+    private apiservice: ApiServicesService,
+    private authService: AuthService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
+
+  ngOnInit(): void {
+    const image = new Image();
+    this.backgroundImage = image;
+
+    const markReady = () => {
+      this.backgroundReady = true;
+    };
+
+    image.onload = markReady;
+    image.onerror = markReady; // keep login usable even if the decorative image fails
+    image.src = 'assets/bg/login_home.png';
+
+    if (image.complete) {
+      markReady();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.backgroundImage) {
+      this.backgroundImage.onload = null;
+      this.backgroundImage.onerror = null;
+    }
+  }
 
  onLogin(form: NgForm): void {
   if (form.valid) {
@@ -32,7 +63,11 @@ export class WzloginComponent {
         localStorage.setItem('access_token', response.access_token);  // use access_token
         this.authService.setToken(response.access_token);
         this.isLoading = false;
-        this.router.navigate(['/wzlab/dashboard']);
+        const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        const returnUrl = requestedUrl?.startsWith('/wzlab/')
+          ? requestedUrl
+          : '/wzlab/dashboard';
+        this.router.navigateByUrl(returnUrl);
       },
       error: (error) => {
         this.loginerror = error.error.detail || 'An error occurred during login.';

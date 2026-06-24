@@ -3,6 +3,8 @@ import { isPlatformBrowser } from '@angular/common';
 import type { TDocumentDefinitions, Content, TableCell } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 
 (pdfMake as any).vfs = pdfFonts.vfs;
 
@@ -261,7 +263,7 @@ export class SampleMeterReportPdfService {
           stack: [
             { text: 'Tested by', bold: true, fontSize: 8 },
             line,
-            { text: (this.S(meta.testing_user) || '-').toUpperCase(), fontSize: 7.5, color: this.theme.textSubtle, margin: [0, 2, 0, 1] },
+            { text: signatureNameUpper(resolveReportSignatureNames(meta).testerName), fontSize: 7.5, color: this.theme.textSubtle, margin: [0, 2, 0, 1] },
             { text: 'TESTING ASSISTANT', fontSize: 7, color: this.theme.textSubtle }
           ]
         },
@@ -281,7 +283,7 @@ export class SampleMeterReportPdfService {
           stack: [
             { text: 'Approved by', bold: true, fontSize: 8 },
             line,
-            { text: (this.S(meta.approving_user) || '-').toUpperCase(), fontSize: 7.5, color: this.theme.textSubtle, margin: [0, 2, 0, 1] },
+            { text: signatureNameUpper(resolveReportSignatureNames(meta).approverName), fontSize: 7.5, color: this.theme.textSubtle, margin: [0, 2, 0, 1] },
             { text: 'ASSISTANT ENGINEER', fontSize: 7, color: this.theme.textSubtle }
           ]
         }
@@ -299,7 +301,7 @@ export class SampleMeterReportPdfService {
     const labName = this.S(meta.lab?.lab_name);
     const labAddress = this.S(meta.lab?.address_line);
     const labEmail = this.S(meta.lab?.email);
-    const labPhone = this.S(meta.lab?.phone);   
+    const labPhone = this.S(meta.lab?.phone);
     const contentWidth = 595.28 - 18 - 18; // A4 width minus header margins
 
     return {
@@ -312,7 +314,7 @@ export class SampleMeterReportPdfService {
       header: this.headerBar({
         orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
         titleLine: 'SAMPLE METER TEST REPORT',
-        labName: labName || '-',             
+        labName: labName || '-',
         labAddress: labAddress || undefined,
         labEmail: labEmail || undefined,
         labPhone: labPhone || undefined,
@@ -336,7 +338,7 @@ export class SampleMeterReportPdfService {
         } as any;
       },
 
-      content: [      
+      content: [
         this.metaTable(meta),
         this.detailsTable(rows),
         {
@@ -375,6 +377,7 @@ export class SampleMeterReportPdfService {
     }));
 
     const doc = this.buildDoc(safeRows, meta, imagesDict);
+    appendReportDownloadQr(doc, { meta, firstRow: rows?.[0] }, 'SAMPLE_TESTING');
     const fname = `SAMPLE_METER_${this.S(meta.date) || 'REPORT'}.pdf`;
 
     return new Promise<void>((resolve) => {
@@ -407,6 +410,7 @@ export class SampleMeterReportPdfService {
     }));
 
     const doc = this.buildDoc(safeRows, meta, imagesDict);
+    appendReportDownloadQr(doc, { meta, firstRow: rows?.[0] }, 'SAMPLE_TESTING');
     pdfMake.createPdf(doc).open();
   }
 }

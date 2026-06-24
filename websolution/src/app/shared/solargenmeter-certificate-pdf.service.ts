@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 export type GenHeader = {
@@ -114,6 +116,7 @@ export class SolarGenMeterCertificatePdfService {
   // ---------- public API ----------
   async download(header: GenHeader, rows: GenRow[], fileName = 'SOLAR_GENERATIONMETER_CERTIFICATES.pdf') {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_GENERATION_METER');
     await new Promise<void>(res =>
       pdfMake.createPdf(doc).download(fileName, () => res())
     );
@@ -121,11 +124,13 @@ export class SolarGenMeterCertificatePdfService {
 
   async open(header: GenHeader, rows: GenRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_GENERATION_METER');
     pdfMake.createPdf(doc).open();
   }
 
   async print(header: GenHeader, rows: GenRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_GENERATION_METER');
     pdfMake.createPdf(doc).print();
   }
 
@@ -134,6 +139,7 @@ export class SolarGenMeterCertificatePdfService {
     for (const r of reports) {
       try {
         const doc = await this.buildDocWithLogos(r.header, r.rows);
+        appendReportDownloadQr(doc, { header: r.header, firstRow: r.rows?.[0] }, 'SOLAR_GENERATION_METER');
         await new Promise<void>((res, rej) => {
           try {
             pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res());
@@ -157,7 +163,7 @@ export class SolarGenMeterCertificatePdfService {
     const builtDocs: any[] = [];
     for (const r of reports) {
       try {
-        builtDocs.push(await this.buildDocWithLogos(r.header, r.rows));
+        builtDocs.push(appendReportDownloadQr(await this.buildDocWithLogos(r.header, r.rows), { header: r.header, firstRow: r.rows?.[0] }, 'SOLAR_GENERATION_METER'));
       } catch (err) {
         console.error('Failed to build doc for header', r.header, err);
       }
@@ -637,8 +643,9 @@ export class SolarGenMeterCertificatePdfService {
 
   // signatures
   private signatureBlock(meta: any) {
-    const testerNameDisplay = (meta.testing_user || '').toString().toUpperCase();
-    const approverNameDisplay = (meta.approving_user || '').toString().toUpperCase();
+    const signatureNames = resolveReportSignatureNames(meta);
+    const testerNameDisplay = signatureNameUpper(signatureNames.testerName);
+    const approverNameDisplay = signatureNameUpper(signatureNames.approverName);
 
     return {
       margin: [18, 8, 18, 0],

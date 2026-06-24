@@ -1,3 +1,39 @@
+<ng-container *ngIf="publicDownloadMode; else authenticatedReportList">
+  <main class="public-report-download-page">
+    <section class="public-report-download-card" aria-live="polite">
+      <img src="assets/icons/wzlogo.png" alt="MPWZ Laboratory" class="public-report-logo">
+      <h1>RMTL Test Report</h1>
+
+      <div *ngIf="loading || (!publicDownloadFinished && !publicDownloadError)" class="public-report-progress">
+        <span class="spinner-border" role="status" aria-hidden="true"></span>
+        <p>{{ publicDownloadStatus || 'Preparing your PDF report…' }}</p>
+      </div>
+
+      <div *ngIf="publicDownloadFinished && !publicDownloadError" class="public-report-success">
+        <i class="fas fa-circle-check" aria-hidden="true"></i>
+        <p>{{ publicDownloadStatus }}</p>
+        <small>If your browser did not save the file, use Download Again.</small>
+      </div>
+
+      <div *ngIf="publicDownloadError" class="alert alert-danger mb-3">
+        {{ publicDownloadError }}
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="retryPublicDownload()"
+        [disabled]="loading || !publicQrRequest">
+        <i class="fas fa-download me-2" aria-hidden="true"></i>
+        Download Again
+      </button>
+
+      <p class="public-report-note">No login is required for this report-download link.</p>
+    </section>
+  </main>
+</ng-container>
+
+<ng-template #authenticatedReportList>
 <div class="container-fluid mt-2">
   <div class="card shadow border-0">
     <!-- Header -->
@@ -296,3 +332,5 @@
     </details>
   </div>
 </div>
+
+</ng-template>

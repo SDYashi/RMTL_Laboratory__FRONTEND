@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { firstValueFrom } from 'rxjs';
@@ -17,6 +17,7 @@ import { SmartAgainstMeterReportPdfService, SmartRow, SmartMeta } from 'src/app/
 import { SolarGenMeterCertificatePdfService, GenRow, GenHeader } from 'src/app/shared/solargenmeter-certificate-pdf.service';
 import { SolarNetMeterCertificatePdfService, SolarRow, SolarHeader } from 'src/app/shared/solarnetmeter-certificate-pdf.service';
 import { StopDefectiveReportPdfService, StopDefRow, StopDefMeta } from 'src/app/shared/stopdefective-report-pdf.service';
+import { clearActiveReportQrContext, setActiveReportQrContext } from 'src/app/shared/report-download-qr.util';
 import {
   SolarNetMeterCertificatePdfService_1,
   SolarHeader as SmartSolarHeader,
@@ -41,6 +42,7 @@ export class RmtlViewTestreportComponent implements OnInit {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private api: ApiServicesService,
     private contestedPdf: ContestedReportPdfService,
     private ctPdf: CtReportPdfService,
@@ -85,11 +87,27 @@ export class RmtlViewTestreportComponent implements OnInit {
   selected: TestReport | null = null;
   lab : any = null;
 
+  // Public QR-download page state. This route intentionally runs without a
+  // logged-in session and therefore must not start the normal report-list APIs.
+  publicDownloadMode = false;
+  publicDownloadStatus = 'Preparing report download…';
+  publicDownloadError = '';
+  publicDownloadFinished = false;
+  publicQrRequest: { reportId: string; reportType: string; serialNumber: string } | null = null;
+
   // ===== NEW: cache for usernames =====
   private userNameCache = new Map<number, string>();
 
   // ========= lifecycle =========
   ngOnInit(): void {
+    this.publicDownloadMode = this.isPublicReportDownloadRoute();
+
+    if (this.publicDownloadMode) {
+      this.handleQrAutoDownload();
+      return;
+    }
+
+    // Normal report-list view remains authenticated and unchanged.
     this.fetchFromServer(true);
 
     this.api.getEnums().subscribe({
@@ -98,6 +116,130 @@ export class RmtlViewTestreportComponent implements OnInit {
       },
       error: (err) => console.error('Failed to load report types:', err)
     });
+
+    // Supports authenticated users opening an older QR URL directly.
+    this.handleQrAutoDownload();
+  }
+
+  private isPublicReportDownloadRoute(): boolean {
+    const path = this.router.url.split('?')[0].replace(/\/+$/, '');
+    return path.endsWith('/public/report-download');
+  }
+
+  public handleQrAutoDownload(): void {
+    const reportId = (
+      this.route.snapshot.queryParamMap.get('report_id') ||
+      this.route.snapshot.queryParamMap.get('r') ||
+      ''
+    ).trim();
+    const reportType = (
+      this.route.snapshot.queryParamMap.get('report_type') ||
+      this.route.snapshot.queryParamMap.get('t') ||
+      ''
+    ).trim();
+    const serialNumber = (
+      this.route.snapshot.queryParamMap.get('serial_number') ||
+      this.route.snapshot.queryParamMap.get('s') ||
+      ''
+    ).trim();
+    const autoDownload = this.route.snapshot.queryParamMap.get('autoDownload') === '1' ||
+      this.route.snapshot.queryParamMap.get('download') === '1' ||
+      this.route.snapshot.queryParamMap.get('d') === '1';
+
+    this.publicQrRequest = { reportId, reportType, serialNumber };
+    this.publicDownloadError = '';
+    this.publicDownloadFinished = false;
+
+    if (!autoDownload || !reportType || (!reportId && !serialNumber)) {
+      this.publicQrRequest = null;
+      if (this.publicDownloadMode) {
+        this.publicDownloadStatus = '';
+        this.publicDownloadError = 'This QR link is incomplete or invalid.';
+      }
+      return;
+    }
+
+    this.publicDownloadStatus = 'Preparing your PDF report…';
+    setTimeout(() => void this.executeQrDownload(reportId, reportType, serialNumber), 0);
+  }
+
+  public retryPublicDownload(): void {
+    if (!this.publicQrRequest) return;
+    const { reportId, reportType, serialNumber } = this.publicQrRequest;
+    this.publicDownloadError = '';
+    this.publicDownloadFinished = false;
+    this.publicDownloadStatus = 'Preparing your PDF report…';
+    void this.executeQrDownload(reportId, reportType, serialNumber);
+  }
+
+  private async executeQrDownload(
+    reportId: string,
+    reportType: string,
+    serialNumber: string
+  ): Promise<void> {
+    try {
+      const resolvedReportId = reportId || await this.resolveQrReportId(serialNumber, reportType);
+      if (!resolvedReportId) {
+        this.publicDownloadStatus = '';
+        this.publicDownloadError = 'The report could not be found for this QR code.';
+        if (!this.publicDownloadMode) alert(this.publicDownloadError);
+        return;
+      }
+
+      const downloaded = await this.downloadTestreports_byreportidwithReportTypes(
+        resolvedReportId,
+        reportType
+      );
+
+      if (downloaded) {
+        this.publicDownloadFinished = true;
+        this.publicDownloadStatus = 'Your report download has started.';
+      } else {
+        this.publicDownloadStatus = '';
+        this.publicDownloadError = 'The report PDF could not be generated.';
+      }
+
+      // Keep query parameters on the public page so Refresh/Download Again can
+      // repeat the download. The authenticated list view still clears them.
+      if (!this.publicDownloadMode) {
+        await this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true
+        });
+      }
+    } catch (error) {
+      console.error('Public QR report download failed:', error);
+      this.publicDownloadStatus = '';
+      this.publicDownloadError = 'Unable to download this report. Please try again.';
+      if (!this.publicDownloadMode) alert(this.publicDownloadError);
+    }
+  }
+
+  private async resolveQrReportId(serialNumber: string, reportType: string): Promise<string> {
+    if (!serialNumber || !reportType) return '';
+
+    // Newly generated QR codes always contain report_id. Serial-only lookup is
+    // retained for older authenticated links, but is intentionally not exposed
+    // as a broad public search endpoint.
+    if (this.publicDownloadMode) return '';
+
+    try {
+      const response: any = await firstValueFrom(this.api.getTestingRecords(
+        serialNumber, null, null, null, null, null, 0, 20, reportType, null, null
+      ));
+      const records = Array.isArray(response)
+        ? response
+        : (response?.data || response?.items || response?.records || []);
+      const match = records.find((record: any) => {
+        const type = String(record?.report_type ?? record?.testing?.report_type ?? '').trim();
+        return !type || type === reportType;
+      });
+      return String(match?.report_id ?? match?.testing?.report_id ?? '').trim();
+    } catch (error) {
+      console.error('Unable to resolve QR report by serial number:', error);
+      return '';
+    }
   }
 private isSmartSolarNetMeter(rec: any): boolean {
   const meterType = (
@@ -110,12 +252,20 @@ private isSmartSolarNetMeter(rec: any): boolean {
 }
   // ===== UPDATED: cached username lookup =====
   async getUserNameById(id: number): Promise<string> {
+    if (this.publicDownloadMode) return '';
     if (!id && id !== 0) return '';
     if (this.userNameCache.has(id)) return this.userNameCache.get(id)!;
 
     try {
       const user = await firstValueFrom(this.api.getUser(id));
-      const name = user?.name ?? '';
+      // UserPublic exposes `name` and `username`. Some legacy API responses may
+      // additionally return `full_name`, so widen the local response shape only.
+      const userWithLegacyName = user as typeof user & { full_name?: string };
+      const name =
+        userWithLegacyName?.name ||
+        userWithLegacyName?.full_name ||
+        userWithLegacyName?.username ||
+        '';
       this.userNameCache.set(id, name);
       return name;
     } catch (err) {
@@ -133,12 +283,10 @@ private isSmartSolarNetMeter(rec: any): boolean {
     user?: any;
     testing_bench?: any;
   }>> {
-    const apiResp: any = await new Promise((resolve, reject) =>
-      this.api.getDevicesByReportId(report_id).subscribe({
-        next: resolve,
-        error: reject
-      })
-    );
+    const request$ = this.publicDownloadMode
+      ? this.api.getPublicDevicesByReportId(report_id)
+      : this.api.getDevicesByReportId(report_id);
+    const apiResp: any = await firstValueFrom(request$);
 
     return Array.isArray(apiResp) ? apiResp : [];
   }
@@ -315,25 +463,25 @@ private isSmartSolarNetMeter(rec: any): boolean {
   async downloadTestreports_byreportidwithReportTypes(
     report_id?: string | null,
     report_type?: string | null
-  ) {
+  ): Promise<boolean> {
     const rid = (report_id ?? '').toString().trim();
     const rtype = (report_type ?? '').toString().trim();
 
     if (!rid || !rtype) {
       console.warn('Missing report_id or report_type', { rid, rtype });
-      return;
+      return false;
     }
 
     this.loading = true;
+    setActiveReportQrContext({ reportId: rid, reportType: rtype });
 
     try {
       // ===== UPDATED: use helper =====
       const rowsRaw = await this.fetchReportBatchRows(rid);
 
       if (!rowsRaw.length) {
-        alert('No devices found for this report.');
-        this.loading = false;
-        return;
+        if (!this.publicDownloadMode) alert('No devices found for this report.');
+        return false;
       }
 
       const S = (v: any) => (v === null || v === undefined ? '' : String(v));
@@ -360,13 +508,53 @@ private isSmartSolarNetMeter(rec: any): boolean {
         assignment0.bench?.bench_name ||
         '';
 
-      const testUserName =
-        S(user0.name || user0.username || '') ||
-        await this.getUserNameById(assignment0.user_id);
+      const personName = (person: any): string => {
+        if (!person) return '';
+        if (typeof person === 'string' || typeof person === 'number') return S(person).trim();
+        return S(person.name || person.full_name || person.username || '').trim();
+      };
+      const firstName = (...values: any[]): string => {
+        for (const value of values) {
+          const name = personName(value);
+          if (name && name !== '-') return name;
+        }
+        return '';
+      };
+      const numericUserId = (...values: any[]): number | null => {
+        for (const value of values) {
+          if (value === null || value === undefined || value === '') continue;
+          const id = Number(value);
+          if (Number.isFinite(id) && id > 0) return id;
+        }
+        return null;
+      };
 
-      const approvingUser =
-        S(t0.user_id ? await this.getUserNameById(t0.user_id) : '' ) ||
-        (assignment0.assigned_by ? await this.getUserNameById(assignment0.assigned_by) : '');
+      const testerId = numericUserId(
+        assignment0.user_id,
+        t0.created_by,
+        t0.user_id
+      );
+      const approverId = numericUserId(
+        t0.approver_id,
+        assignment0.assigned_by
+      );
+
+      const testUserName = firstName(
+        t0.testing_user,
+        (first as any).testing_user,
+        user0,
+        assignment0.user_assigned,
+        (first as any).user_assigned
+      ) || (testerId ? await this.getUserNameById(testerId) : '');
+
+      const approvingUser = firstName(
+        t0.approving_user,
+        t0.approver_name,
+        (first as any).approving_user,
+        assignment0.assigned_by_user,
+        (first as any).assigned_by_user,
+        (first as any).approver
+      ) || (approverId ? await this.getUserNameById(approverId) : '');
 
       const testmethod = S(t0.test_method || 'NA').toUpperCase();
       const testStatus = S(t0.test_status || 'NA').toUpperCase();
@@ -1084,7 +1272,7 @@ const mapSOLAR_NET_SMART = (rec: any) => {
           break;
         }
       case 'CT_TESTING': {
-  const first = rowsRaw[0] || {};
+  const first = rowsRaw[0];
   const t0 = first.testing || {};
   const d0 = first.device || {};
   const a0 = first.assignment || {};
@@ -1170,6 +1358,7 @@ const mapSOLAR_NET_SMART = (rec: any) => {
             testStatus: commonHeaderBase.testStatus,
             testing_bench: commonHeaderBase.testing_bench,
             testing_user: commonHeaderBase.testing_user,
+            approving_user: commonHeaderBase.approving_user,
             date: commonHeaderBase.date,
             lab_name: commonHeaderBase.lab_name,
             lab_address: commonHeaderBase.lab_address,
@@ -1369,15 +1558,22 @@ const mapSOLAR_NET_SMART = (rec: any) => {
         }
 
         default: {
-          alert(`Unsupported / unhandled report type: ${rtype}`);
-          break;
+          if (!this.publicDownloadMode) {
+            alert(`Unsupported / unhandled report type: ${rtype}`);
+          }
+          return false;
         }
       }
 
+      return true;
     } catch (err) {
       console.error('downloadTestreports_byreportidwithReportTypes failed:', err);
-      alert('Could not generate PDF for this report. Check console for details.');
+      if (!this.publicDownloadMode) {
+        alert('Could not generate PDF for this report. Check console for details.');
+      }
+      return false;
     } finally {
+      clearActiveReportQrContext();
       this.loading = false;
     }
   }

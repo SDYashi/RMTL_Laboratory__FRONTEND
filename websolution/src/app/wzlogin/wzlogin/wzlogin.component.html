@@ -1,6 +1,10 @@
-<body rel="preload">
-  <div class="login-container">
-    <div class="login-card">
+<div class="login-page">
+  <div class="login-container" [class.background-ready]="backgroundReady">
+    <div class="background-loader" *ngIf="!backgroundReady" aria-live="polite">
+      <span class="spinner-border text-light" role="status" aria-hidden="true"></span>
+      <span>Loading secure login…</span>
+    </div>
+    <div class="login-card" [class.login-card-ready]="backgroundReady">
       <div class="login-header text-center">
         <img src="../../../assets/icons/wzlogo.png" alt="Company Logo" class="logo mb-2">
         <h2 class="mb-4">MPWZ Laboratory</h2>
@@ -82,4 +86,4 @@
       </div>
     </div>
   </div>
-</body>
+</div>

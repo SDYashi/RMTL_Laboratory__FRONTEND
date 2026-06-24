@@ -15,6 +15,8 @@ import {
   BarElement,
   LineController,
   LineElement,
+  DoughnutController,
+  ArcElement,
   CategoryScale,
   LinearScale,
   PointElement,
@@ -28,6 +30,8 @@ Chart.register(
   BarElement,
   LineController,
   LineElement,
+  DoughnutController,
+  ArcElement,
   CategoryScale,
   LinearScale,
   PointElement,
@@ -35,7 +39,6 @@ Chart.register(
   Legend
 );
 
-// ✅ Global chart polish (optional but recommended)
 Chart.defaults.color = '#334155';
 Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
 Chart.defaults.plugins.tooltip.backgroundColor = '#0f172a';
@@ -82,17 +85,25 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
   isLoading = false;
   error: string | null = null;
 
-  // charts instances
   private devicesByTypeChart?: Chart;
   private testingProgressChart?: Chart;
   private assignmentPctChart?: Chart;
   private inwardPerDayChart?: Chart;
+  private approvalStatusChart?: Chart;
+  private testingUsersChart?: Chart;
+  private testingUsersShareChart?: Chart;
+  private oicUsersChart?: Chart;
+  private storeUsersChart?: Chart;
 
-  // chart configs
   private devicesByTypeConfig?: ChartConfiguration<'bar'>;
   private testingProgressConfig?: ChartConfiguration<'bar'>;
   private assignmentPctConfig?: ChartConfiguration<'bar'>;
   private inwardPerDayConfig?: ChartConfiguration<'line'>;
+  private approvalStatusConfig?: ChartConfiguration<'doughnut'>;
+  private testingUsersConfig?: ChartConfiguration<'bar'>;
+  private testingUsersShareConfig?: ChartConfiguration<'doughnut'>;
+  private oicUsersConfig?: ChartConfiguration<'bar'>;
+  private storeUsersConfig?: ChartConfiguration<'bar'>;
 
   private chartSourcesLoaded = {
     barDevices: false,
@@ -100,11 +111,10 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     barAssignPct: false,
     lineInward: false,
   };
-  private chartDataReady = false;
 
+  private chartDataReady = false;
   private subs: Subscription[] = [];
 
-  // ---------- chart colors ----------
   private COLORS = {
     blue: '#4f46e5',
     green: '#22c55e',
@@ -114,16 +124,20 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     cyan: '#06b6d4',
     yellow: '#eab308',
     gray: '#64748b',
+    slate: '#0f172a',
+    teal: '#0d9488',
   };
 
   private BG = {
-    blue: 'rgba(79,70,229,0.7)',
-    green: 'rgba(34,197,94,0.7)',
-    orange: 'rgba(249,115,22,0.7)',
-    red: 'rgba(239,68,68,0.7)',
-    purple: 'rgba(168,85,247,0.7)',
-    cyan: 'rgba(6,182,212,0.7)',
-    yellow: 'rgba(234,179,8,0.7)',
+    blue: 'rgba(79,70,229,0.78)',
+    green: 'rgba(34,197,94,0.78)',
+    orange: 'rgba(249,115,22,0.78)',
+    red: 'rgba(239,68,68,0.78)',
+    purple: 'rgba(168,85,247,0.78)',
+    cyan: 'rgba(6,182,212,0.78)',
+    yellow: 'rgba(234,179,8,0.78)',
+    gray: 'rgba(100,116,139,0.78)',
+    teal: 'rgba(13,148,136,0.78)',
   };
 
   constructor(
@@ -133,7 +147,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     private appRef: ApplicationRef
   ) {}
 
-  // ---------- role helpers ----------
   get roles(): string[] {
     const raw = this.currentUser?.roles ?? this.currentUser?.role ?? [];
     const normalize = (v: any): string[] => {
@@ -187,7 +200,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     );
   }
 
-  // ---------- lifecycle ----------
   ngOnInit(): void {
     this.currentUser = this.auth.currentUser;
     if (!this.currentUser) {
@@ -223,14 +235,11 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     this.reload();
   }
 
-  // ---------- main reload ----------
   reload(): void {
     this.error = null;
     this.isLoading = true;
-
     this.mainData = null;
 
-    // reset charts state
     this.destroyCharts();
     this.chartDataReady = false;
     this.chartSourcesLoaded = {
@@ -242,7 +251,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
 
     const { from_date, to_date } = this.getDateRange();
 
-    // MAIN
     this.subs.push(
       this.api
         .getDashboardMain({
@@ -253,6 +261,8 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
         .subscribe({
           next: (res: DashboardMainResponse) => {
             this.mainData = res;
+            this.buildUserwiseCharts();
+            this.buildApprovalStatusChart();
             this.isLoading = false;
             this.renderChartsIfReady();
           },
@@ -260,7 +270,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
         })
     );
 
-    // CHARTS
     this.reloadChartsData(from_date, to_date);
   }
 
@@ -285,7 +294,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     return (n ?? 0).toLocaleString();
   }
 
-  // ---------- charts loaders ----------
   private buildChartParams(from_date: string, to_date: string) {
     return {
       lab_id: this.filters.lab_id ? Number(this.filters.lab_id) : undefined,
@@ -298,7 +306,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
   private reloadChartsData(from_date: string, to_date: string): void {
     const p = this.buildChartParams(from_date, to_date);
 
-    // Devices by Type
     this.subs.push(
       this.api.getBarChart(p).subscribe({
         next: (data: BarChartItem[]) => {
@@ -319,8 +326,7 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
                   backgroundColor: labels.map((_, i) => bgList[i % bgList.length]),
                   borderColor: labels.map((_, i) => brList[i % brList.length]),
                   borderWidth: 1,
-                  borderRadius: 6,
-                  hoverBackgroundColor: labels.map((_, i) => brList[i % brList.length]),
+                  borderRadius: 8,
                 },
               ],
             },
@@ -341,7 +347,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Testing Progress
     this.subs.push(
       this.api.getTestingBarChart(p).subscribe({
         next: (data: TestingBarChartItem[]) => {
@@ -360,7 +365,7 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
                   backgroundColor: this.BG.green,
                   borderColor: this.COLORS.green,
                   borderWidth: 1,
-                  borderRadius: 6,
+                  borderRadius: 8,
                 },
                 {
                   label: 'Total',
@@ -368,7 +373,7 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
                   backgroundColor: this.BG.blue,
                   borderColor: this.COLORS.blue,
                   borderWidth: 1,
-                  borderRadius: 6,
+                  borderRadius: 8,
                 },
               ],
             },
@@ -389,7 +394,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Assignment %
     this.subs.push(
       this.api.getAssignmentPercentage(p).subscribe({
         next: (data: AssignmentPercentageItem[]) => {
@@ -414,7 +418,7 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
                     v >= 80 ? this.COLORS.green : v >= 50 ? this.COLORS.yellow : this.COLORS.red
                   ),
                   borderWidth: 1,
-                  borderRadius: 6,
+                  borderRadius: 8,
                 },
               ],
             },
@@ -436,7 +440,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Inward per Day
     this.subs.push(
       this.api.getCompletedActivitiesLine(p).subscribe({
         next: (data: LineChartItem[]) => {
@@ -455,7 +458,7 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
                   label: 'Inwarded Devices',
                   data: counts,
                   borderColor: this.COLORS.purple,
-                  backgroundColor: 'rgba(168,85,247,0.25)',
+                  backgroundColor: 'rgba(168,85,247,0.20)',
                   pointBackgroundColor: this.COLORS.purple,
                   pointBorderColor: '#fff',
                   pointRadius: 4,
@@ -483,7 +486,210 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     );
   }
 
-  // ✅ FIXED: wait until DOM creates canvases, then draw (retry if needed)
+  private buildApprovalStatusChart(): void {
+    const counts = this.mainData?.counts;
+    if (!counts) return;
+
+    this.approvalStatusConfig = {
+      type: 'doughnut',
+      data: {
+        labels: ['Pending Approval', 'Approval Done'],
+        datasets: [
+          {
+            data: [
+              counts.pending_for_approval ?? 0,
+              counts.approval_done ?? 0,
+            ],
+            backgroundColor: [this.BG.orange, this.BG.green],
+            borderColor: [this.COLORS.orange, this.COLORS.green],
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+        },
+      },
+    };
+  }
+
+  private buildUserwiseCharts(): void {
+    const testingUsers = (this.mainData?.userwise?.testing_users || [])
+      .filter((u) => (u.total_assigned || 0) > 0 || (u.testing_done || 0) > 0 || (u.testing_pending || 0) > 0 || (u.pending_approval || 0) > 0)
+      .sort((a, b) => (b.total_assigned || 0) - (a.total_assigned || 0));
+
+    const oicUsers = (this.mainData?.userwise?.oic_users || [])
+      .filter((u) => (u.total_assigned_by_me || 0) > 0 || (u.pending_approval || 0) > 0 || (u.not_assigned || 0) > 0);
+
+    const storeUsers = (this.mainData?.userwise?.store_users || [])
+      .filter((u) => (u.inwarded_by_me || 0) > 0 || (u.dispatched_by_me || 0) > 0);
+
+    const testingLabels = testingUsers.map((u) => this.shortName(u.name));
+    const testingAssigned = testingUsers.map((u) => u.total_assigned || 0);
+    const testingDone = testingUsers.map((u) => u.testing_done || 0);
+    const testingPending = testingUsers.map((u) => u.testing_pending || 0);
+    const testingPendingApproval = testingUsers.map((u) => u.pending_approval || 0);
+
+    this.testingUsersConfig = {
+      type: 'bar',
+      data: {
+        labels: testingLabels,
+        datasets: [
+          {
+            label: 'Assigned',
+            data: testingAssigned,
+            backgroundColor: this.BG.blue,
+            borderColor: this.COLORS.blue,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Done',
+            data: testingDone,
+            backgroundColor: this.BG.green,
+            borderColor: this.COLORS.green,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Pending',
+            data: testingPending,
+            backgroundColor: this.BG.yellow,
+            borderColor: this.COLORS.yellow,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Pending Approval',
+            data: testingPendingApproval,
+            backgroundColor: this.BG.orange,
+            borderColor: this.COLORS.orange,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+        },
+        scales: {
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 0,
+            },
+          },
+          y: {
+            beginAtZero: true,
+          },
+        },
+      },
+    };
+
+    this.testingUsersShareConfig = {
+      type: 'doughnut',
+      data: {
+        labels: testingLabels,
+        datasets: [
+          {
+            data: testingAssigned,
+            backgroundColor: this.generatePalette(testingLabels.length),
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+        },
+      },
+    };
+
+    const oicLabels = oicUsers.map((u) => this.shortName(u.name));
+    this.oicUsersConfig = {
+      type: 'bar',
+      data: {
+        labels: oicLabels,
+        datasets: [
+          {
+            label: 'Assigned',
+            data: oicUsers.map((u) => u.total_assigned_by_me || 0),
+            backgroundColor: this.BG.cyan,
+            borderColor: this.COLORS.cyan,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Pending Approval',
+            data: oicUsers.map((u) => u.pending_approval || 0),
+            backgroundColor: this.BG.orange,
+            borderColor: this.COLORS.orange,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Not Assigned',
+            data: oicUsers.map((u) => u.not_assigned || 0),
+            backgroundColor: this.BG.gray,
+            borderColor: this.COLORS.gray,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: true },
+        },
+      },
+    };
+
+    const storeLabels = storeUsers.map((u) => this.shortName(u.name));
+    this.storeUsersConfig = {
+      type: 'bar',
+      data: {
+        labels: storeLabels,
+        datasets: [
+          {
+            label: 'Inwarded',
+            data: storeUsers.map((u) => u.inwarded_by_me || 0),
+            backgroundColor: this.BG.teal,
+            borderColor: this.COLORS.teal,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Dispatched',
+            data: storeUsers.map((u) => u.dispatched_by_me || 0),
+            backgroundColor: this.BG.red,
+            borderColor: this.COLORS.red,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: true },
+        },
+      },
+    };
+  }
+
   private renderChartsIfReady(): void {
     if (this.chartDataReady) return;
     if (this.isLoading || this.error) return;
@@ -507,13 +713,19 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       'devicesByTypeChart',
       'testingProgressChart',
       'assignmentPctChart',
+      'approvalStatusChart',
+      'testingUsersChart',
+      'testingUsersShareChart',
+      'oicUsersChart',
+      'storeUsersChart',
       'inwardPerDayChart',
     ];
+
     const allCanvasExist = ids.every((id) => !!document.getElementById(id));
 
     if (!allCanvasExist) {
-      if (attempt < 3) requestAnimationFrame(() => this.tryDrawCharts(attempt + 1));
-      else console.warn('Chart canvases not found after retries. Check *ngIf and canvas ids.', ids);
+      if (attempt < 4) requestAnimationFrame(() => this.tryDrawCharts(attempt + 1));
+      else console.warn('Chart canvases not found after retries.', ids);
       return;
     }
 
@@ -523,16 +735,49 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
         this.devicesByTypeChart,
         this.devicesByTypeConfig!
       );
+
       this.testingProgressChart = this.initOrUpdateChart(
         'testingProgressChart',
         this.testingProgressChart,
         this.testingProgressConfig!
       );
+
       this.assignmentPctChart = this.initOrUpdateChart(
         'assignmentPctChart',
         this.assignmentPctChart,
         this.assignmentPctConfig!
       );
+
+      this.approvalStatusChart = this.initOrUpdateChart(
+        'approvalStatusChart',
+        this.approvalStatusChart,
+        this.approvalStatusConfig!
+      );
+
+      this.testingUsersChart = this.initOrUpdateChart(
+        'testingUsersChart',
+        this.testingUsersChart,
+        this.testingUsersConfig!
+      );
+
+      this.testingUsersShareChart = this.initOrUpdateChart(
+        'testingUsersShareChart',
+        this.testingUsersShareChart,
+        this.testingUsersShareConfig!
+      );
+
+      this.oicUsersChart = this.initOrUpdateChart(
+        'oicUsersChart',
+        this.oicUsersChart,
+        this.oicUsersConfig!
+      );
+
+      this.storeUsersChart = this.initOrUpdateChart(
+        'storeUsersChart',
+        this.storeUsersChart,
+        this.storeUsersConfig!
+      );
+
       this.inwardPerDayChart = this.initOrUpdateChart(
         'inwardPerDayChart',
         this.inwardPerDayChart,
@@ -564,6 +809,11 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     this.testingProgressChart?.destroy();
     this.assignmentPctChart?.destroy();
     this.inwardPerDayChart?.destroy();
+    this.approvalStatusChart?.destroy();
+    this.testingUsersChart?.destroy();
+    this.testingUsersShareChart?.destroy();
+    this.oicUsersChart?.destroy();
+    this.storeUsersChart?.destroy();
   }
 
   private formatDateLabel(iso: string): string {
@@ -571,5 +821,28 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     const day = d.getDate().toString().padStart(2, '0');
     const month = d.toLocaleString('en-GB', { month: 'short' });
     return `${day} ${month}`;
+  }
+
+  private shortName(name: string): string {
+    if (!name) return '';
+    const clean = String(name).trim().replace(/\s+/g, ' ');
+    if (clean.length <= 16) return clean;
+    return clean.split(' ').slice(0, 2).join(' ');
+  }
+
+  private generatePalette(count: number): string[] {
+    const palette = [
+      this.BG.blue,
+      this.BG.green,
+      this.BG.orange,
+      this.BG.purple,
+      this.BG.cyan,
+      this.BG.yellow,
+      this.BG.red,
+      this.BG.gray,
+      this.BG.teal,
+    ];
+
+    return Array.from({ length: count }, (_, i) => palette[i % palette.length]);
   }
 }

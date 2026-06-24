@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 type TDocumentDefinitions = any;
@@ -113,6 +115,7 @@ export class P4onmReportPdfService {
   // ---------- Public API ----------
   async downloadFromBatch(header: P4ONMReportHeader, rows: P4ONMReportRow[], opts: P4ONMPdfOptions = {}): Promise<void> {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'ONM_CHECKING');
     const name = opts.fileName || `P4_ONM_${header.date}.pdf`;
     await new Promise<void>((resolve) =>
       pdfMake.createPdf(doc).download(name, () => resolve())
@@ -121,11 +124,13 @@ export class P4onmReportPdfService {
 
   async openFromBatch(header: P4ONMReportHeader, rows: P4ONMReportRow[]): Promise<void> {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'ONM_CHECKING');
     pdfMake.createPdf(doc).open();
   }
 
   async printFromBatch(header: P4ONMReportHeader, rows: P4ONMReportRow[]): Promise<void> {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'ONM_CHECKING');
     pdfMake.createPdf(doc).print();
   }
 
@@ -718,7 +723,7 @@ export class P4onmReportPdfService {
             { text: '\n\nTested by', alignment: 'center' as const, bold: true, fontSize: 8 },
             { text: '____________________________', alignment: 'center' as const, margin: [0, 4, 0, 0] },
             {
-              text: meta.testing_user || '____________________________',
+              text: signatureNameUpper(resolveReportSignatureNames(meta).testerName),
               alignment: 'center' as const,
               color: this.theme.subtleText,
               fontSize: 7.5
@@ -752,7 +757,7 @@ export class P4onmReportPdfService {
             { text: '\n\nApproved by', alignment: 'center' as const, bold: true, fontSize: 8 },
             { text: '____________________________', alignment: 'center' as const, margin: [0, 4, 0, 0] },
             {
-              text: meta.approving_user || '____________________________',
+              text: signatureNameUpper(resolveReportSignatureNames(meta).approverName),
               alignment: 'center' as const,
               color: this.theme.subtleText,
               fontSize: 7.5
@@ -791,7 +796,7 @@ export class P4onmReportPdfService {
       });
     }
 
- 
+
     if (legacyResults) blocks.push(legacyResults);
     if (remarksBlock) blocks.push(remarksBlock);
 

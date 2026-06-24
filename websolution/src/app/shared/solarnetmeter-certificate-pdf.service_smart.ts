@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 export type SolarHeader = {
@@ -167,6 +169,7 @@ export class SolarNetMeterCertificatePdfService_1 {
     fileName = 'SOLAR_NETMETER_CERTIFICATES_smart.pdf'
   ) {
     const doc = await this.buildDocWithAssets(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_NETMETER');
     await new Promise<void>(res =>
       pdfMake.createPdf(doc).download(fileName, () => res())
     );
@@ -174,11 +177,13 @@ export class SolarNetMeterCertificatePdfService_1 {
 
   async open(header: SolarHeader, rows: SolarRow[]) {
     const doc = await this.buildDocWithAssets(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_NETMETER');
     pdfMake.createPdf(doc).open();
   }
 
   async print(header: SolarHeader, rows: SolarRow[]) {
     const doc = await this.buildDocWithAssets(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_NETMETER');
     pdfMake.createPdf(doc).print();
   }
 
@@ -188,6 +193,7 @@ export class SolarNetMeterCertificatePdfService_1 {
     for (const r of reports) {
       try {
         const doc = await this.buildDocWithAssets(r.header, r.rows);
+        appendReportDownloadQr(doc, { header: r.header, firstRow: r.rows?.[0] }, 'SOLAR_NETMETER');
         await new Promise<void>((res, rej) => {
           try {
             pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res());
@@ -213,7 +219,7 @@ export class SolarNetMeterCertificatePdfService_1 {
     const builtDocs: any[] = [];
     for (const r of reports) {
       try {
-        builtDocs.push(await this.buildDocWithAssets(r.header, r.rows));
+        builtDocs.push(appendReportDownloadQr(await this.buildDocWithAssets(r.header, r.rows), { header: r.header, firstRow: r.rows?.[0] }, 'SOLAR_NETMETER'));
       } catch (err) {
         console.error('Failed to build doc for header', r.header, err);
       }
@@ -615,7 +621,7 @@ export class SolarNetMeterCertificatePdfService_1 {
         {},
         { text: `100% IB -    ${this.fmtNum(r.export_upf_100_ib, 3)}` }
       ],
-      [       
+      [
         {},
         {},
          { text: `5% IB -        ${this.fmtNum(r.import_upf_5_ib, 3)}` },
@@ -708,7 +714,7 @@ export class SolarNetMeterCertificatePdfService_1 {
         {
           text: this.fmtNum(r.net_imp_exp, 4),
           bold: true,
-          alignment: 'center',          
+          alignment: 'center',
           colSpan: 4
         },
         {},
@@ -739,7 +745,7 @@ export class SolarNetMeterCertificatePdfService_1 {
         {}
       ],
 
-  
+
     ];
 
     return {
@@ -753,6 +759,7 @@ export class SolarNetMeterCertificatePdfService_1 {
   }
 
   private signatureBlock(meta: any, images: Record<string, string>) {
+    const signatureNames = resolveReportSignatureNames(meta);
     const signBox = (
       title: string,
       imageKey: 'testedBySignature' | 'verifiedBySignature' | 'approvedBySignature',
@@ -817,7 +824,7 @@ export class SolarNetMeterCertificatePdfService_1 {
         signBox(
           'Tested by',
           'testedBySignature',
-          meta.testedByName || meta.testing_user || '',
+          signatureNameUpper(signatureNames.testerName),
           meta.testedByDesignation || 'TESTING ASSISTANT'
         ),
         signBox(
@@ -829,7 +836,7 @@ export class SolarNetMeterCertificatePdfService_1 {
         signBox(
           'Approved by',
           'approvedBySignature',
-          meta.approvedByName || meta.approving_user || '',
+          signatureNameUpper(signatureNames.approverName),
           meta.approvedByDesignation || 'ASSISTANT ENGINEER'
         )
       ]

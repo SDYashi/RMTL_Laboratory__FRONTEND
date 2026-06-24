@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 export type SolarHeader = {
@@ -113,6 +115,7 @@ export class SolarNetMeterCertificatePdfService {
     fileName = 'SOLAR_NETMETER_CERTIFICATES.pdf'
   ) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_NETMETER');
     await new Promise<void>(res =>
       pdfMake.createPdf(doc).download(fileName, () => res())
     );
@@ -120,11 +123,13 @@ export class SolarNetMeterCertificatePdfService {
 
   async open(header: SolarHeader, rows: SolarRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_NETMETER');
     pdfMake.createPdf(doc).open();
   }
 
   async print(header: SolarHeader, rows: SolarRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'SOLAR_NETMETER');
     pdfMake.createPdf(doc).print();
   }
 
@@ -135,6 +140,7 @@ export class SolarNetMeterCertificatePdfService {
     for (const r of reports) {
       try {
         const doc = await this.buildDocWithLogos(r.header, r.rows);
+        appendReportDownloadQr(doc, { header: r.header, firstRow: r.rows?.[0] }, 'SOLAR_NETMETER');
         await new Promise<void>((res, rej) => {
           try {
             pdfMake.createPdf(doc).download(r.fileName || 'report.pdf', () => res());
@@ -160,7 +166,7 @@ export class SolarNetMeterCertificatePdfService {
     const builtDocs: any[] = [];
     for (const r of reports) {
       try {
-        builtDocs.push(await this.buildDocWithLogos(r.header, r.rows));
+        builtDocs.push(appendReportDownloadQr(await this.buildDocWithLogos(r.header, r.rows), { header: r.header, firstRow: r.rows?.[0] }, 'SOLAR_NETMETER'));
       } catch (err) {
         console.error('Failed to build doc for header', r.header, err);
       }
@@ -661,8 +667,9 @@ private certTable(r: SolarRow) {
 
   // signatures (with testing_user / approving_user)
   private signatureBlock(meta: any) {
-    const testerNameDisplay = (meta.testing_user || '').toString().toUpperCase();
-    const approverNameDisplay = (meta.approving_user || '').toString().toUpperCase();
+    const signatureNames = resolveReportSignatureNames(meta);
+    const testerNameDisplay = signatureNameUpper(signatureNames.testerName);
+    const approverNameDisplay = signatureNameUpper(signatureNames.approverName);
 
     return {
       margin: [18, 8, 18, 0],
@@ -674,7 +681,7 @@ private certTable(r: SolarRow) {
             {
               text: '____________________________',
               alignment: 'center',
-              margin: [0, 4, 0, 0]
+              margin: [0, 2, 0, 0]
             },
             {
               text: testerNameDisplay,
@@ -697,7 +704,7 @@ private certTable(r: SolarRow) {
             {
               text: '____________________________',
               alignment: 'center',
-              margin: [0, 4, 0, 0]
+              margin: [0, 2, 0, 0]
             },
             {
               text: 'JUNIOR ENGINEER ',
@@ -714,7 +721,7 @@ private certTable(r: SolarRow) {
             {
               text: '____________________________',
               alignment: 'center',
-              margin: [0, 4, 0, 0]
+              margin: [0, 2, 0, 0]
             },
             {
               text: approverNameDisplay,

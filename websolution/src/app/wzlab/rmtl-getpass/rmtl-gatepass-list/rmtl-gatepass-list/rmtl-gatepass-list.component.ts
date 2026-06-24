@@ -105,8 +105,8 @@ export class RmtlGatepassListComponent implements OnInit {
           this.labInfo = {
             lab_name: info?.lab_pdfheader_name || info?.lab_name || '',
             address_line: info?.lab_pdfheader_address || info?.lab_location || '',
-            email: info?.lab_pdfheader_email || info?.lab_email || info?.lab_pdfheader_contact_no || '',
-            phone: info?.lab_pdfheader_contact_no || info?.lab_phone || info?.lab_location || ''
+            email: info?.lab_pdfheader_email || info?.lab_email || 'testinglabwzind@gmail.com',
+            phone: info?.lab_pdfheader_contact_no || info?.lab_phone || '0731-2997802'
           };
         },
         error: (e) => {
@@ -289,10 +289,10 @@ export class RmtlGatepassListComponent implements OnInit {
       supportEmail: this.labInfo?.email || 'rmtl@mpwz.co.in',
       header: {
         orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-        labLine: (this.labInfo?.lab_name ||'').toUpperCase(),
-        addressLine: this.labInfo?.address_line || '',
-        email: this.labInfo?.email || '-',
-        phone: this.labInfo?.phone || '-',
+        labLine: this.labInfo?.lab_name ,
+        addressLine: this.labInfo?.address_line ,
+        email: this.labInfo?.email || 'testinglabwzind@gmail.com',
+        phone: this.labInfo?.phone || '0731-2997802',
         leftLogoUrl: '/assets/icons/wzlogo.png',
         rightLogoUrl: '/assets/icons/wzlogo.png',
       }

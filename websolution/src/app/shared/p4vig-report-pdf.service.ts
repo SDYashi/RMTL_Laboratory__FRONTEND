@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 
 (pdfMake as any).vfs = pdfFonts.vfs;
 
@@ -134,6 +136,7 @@ export class P4VigReportPdfService {
   // ===== PUBLIC API =====
   async download(header: VigHeader, rows: VigRow[], fileName = 'P4_VIG_CONTESTED_REPORTS.pdf') {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'VIGILENCE_CHECKING');
     await new Promise<void>((resolve) =>
       pdfMake.createPdf(doc).download(fileName, () => resolve())
     );
@@ -141,11 +144,13 @@ export class P4VigReportPdfService {
 
   async open(header: VigHeader, rows: VigRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'VIGILENCE_CHECKING');
     pdfMake.createPdf(doc).open();
   }
 
   async print(header: VigHeader, rows: VigRow[]) {
     const doc = await this.buildDocWithLogos(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'VIGILENCE_CHECKING');
     pdfMake.createPdf(doc).print();
   }
 
@@ -614,7 +619,7 @@ export class P4VigReportPdfService {
           stack: [
             { text: 'Tested by', bold: true, alignment: 'center', fontSize: 7 },
             { text: '____________________', alignment: 'center', margin: [0,1,0,0.5], fontSize: 6 },
-            { text: meta.user?.toUpperCase() || '', alignment: 'center', fontSize: 7 },
+            { text: signatureNameUpper(resolveReportSignatureNames(meta).testerName), alignment: 'center', fontSize: 7 },
             { text: 'TESTING ASSISTANT', alignment: 'center', fontSize: 6, color: this.theme.subtle }
           ]
         },
@@ -631,7 +636,7 @@ export class P4VigReportPdfService {
           stack: [
             { text: 'Approved by', bold: true, alignment: 'center', fontSize: 7 },
             { text: '____________________', alignment: 'center', margin: [0,1,0,0.5], fontSize: 6 },
-            { text: meta.approver?.toUpperCase() || '', alignment: 'center', fontSize: 7 },
+            { text: signatureNameUpper(resolveReportSignatureNames(meta).approverName), alignment: 'center', fontSize: 7 },
             { text: 'ASSISTANT ENGINEER', alignment: 'center', fontSize: 6, color: this.theme.subtle }
           ]
         }

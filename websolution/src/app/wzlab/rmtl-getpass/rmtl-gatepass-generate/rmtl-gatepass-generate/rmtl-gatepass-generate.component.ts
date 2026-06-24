@@ -149,8 +149,8 @@ export class RmtlGatepassGenerateComponent implements OnInit {
         this.labInfo = {         
             lab_name: info?.lab_pdfheader_name || info?.lab_name,
             address_line: info?.lab_pdfheader_address || info?.lab_location,
-            email: info?.lab_pdfheader_email || info?.lab_pdfheader_contact_no,
-            phone: info?.lab_pdfheader_contact_no || info?.lab_location
+            email: info?.lab_pdfheader_email || info?.lab_email || 'testinglabwzind@gmail.com',
+            phone: info?.lab_pdfheader_contact_no || info?.lab_phone || '0731-2997802'
         };
       },
       error: (e) => { console.error('Lab info error', e); }
@@ -471,10 +471,10 @@ export class RmtlGatepassGenerateComponent implements OnInit {
       supportEmail: this.labInfo?.email || 'rmtl@mpwz.co.in',
       header: {
         orgLine: 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED',
-        labLine: (this.labInfo?.lab_name || 'REGIONAL METERING TESTING LABORATORY INDORE').toUpperCase(),
-        addressLine: this.labInfo?.address_line || this.labInfo?.address || '',
-        email: this.labInfo?.email || '-',
-        phone: this.labInfo?.phone || '-',
+        labLine: (this.labInfo?.lab_name || 'REGINAL METERING TESTING LABORATORY INDORE').toUpperCase(),
+        addressLine: this.labInfo?.address_line || this.labInfo?.address || 'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003',
+        email: this.labInfo?.email || 'testinglabwzind@gmail.com',
+        phone: this.labInfo?.phone || '0731-2997802',
         leftLogoUrl: '/assets/icons/wzlogo.png',
         rightLogoUrl: '/assets/icons/wzlogo.png',
       }

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 (pdfMake as any).vfs = pdfFonts.vfs;
 
 type TDocumentDefinitions = any;
@@ -51,16 +53,19 @@ export class CtReportPdfService {
 
   async download(header: CtHeader, rows: CtPdfRow[], fileName = this.autoName(header)) {
     const doc = await this.buildDocWithAssets(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'CT_TESTING');
     await new Promise<void>(res => pdfMake.createPdf(doc).download(fileName, () => res()));
   }
 
   async open(header: CtHeader, rows: CtPdfRow[]) {
     const doc = await this.buildDocWithAssets(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'CT_TESTING');
     pdfMake.createPdf(doc).open();
   }
 
   async print(header: CtHeader, rows: CtPdfRow[]) {
     const doc = await this.buildDocWithAssets(header, rows);
+    appendReportDownloadQr(doc, { header, firstRow: rows?.[0] }, 'CT_TESTING');
     pdfMake.createPdf(doc).print();
   }
 
@@ -359,7 +364,7 @@ export class CtReportPdfService {
                   canvas: [{ type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }],
                   margin: [0, 4, 0, 2]
                 },
-                { text: (meta.user || '-').toUpperCase(), style: 'small', alignment: 'center' },
+                { text: signatureNameUpper(resolveReportSignatureNames(meta).testerName), style: 'small', alignment: 'center' },
                 { text: 'TESTING ASSISTANT', style: 'small', alignment: 'center' }
               ]
             },
@@ -385,7 +390,7 @@ export class CtReportPdfService {
                   canvas: [{ type: 'line', x1: 0, y1: 0, x2: 110, y2: 0, lineWidth: 0.7 }],
                   margin: [0, 4, 0, 2]
                 },
-                { text: (meta.approver || '-').toUpperCase(), style: 'small', alignment: 'center' },
+                { text: signatureNameUpper(resolveReportSignatureNames(meta).approverName), style: 'small', alignment: 'center' },
                 { text: 'ASSISTANT ENGINEER', style: 'small', alignment: 'center' }
               ]
             }

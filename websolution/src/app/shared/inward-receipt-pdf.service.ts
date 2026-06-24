@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { removePdfCellBackgroundColors } from './pdf-report-style.util';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 (pdfMake as any).vfs = pdfFonts.vfs;
@@ -120,7 +121,7 @@ export class InwardReceiptPdfService {
     if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
     if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
 
-    return this.buildDoc(d, opts, images);
+    return removePdfCellBackgroundColors(this.buildDoc(d, opts, images));
   }
 
   // ---------- Core doc ----------

@@ -1,3 +1,5 @@
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 // src/app/shared/newmeter-report-pdf.service.ts
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -120,7 +122,7 @@ export class NewMeterReportPdfService {
   }): Content {
     const contactLine =
       (meta.labEmail || meta.labPhone)
-        ? `Email: ${meta.labEmail || '-'}    Phone: ${meta.labPhone || '-'}` 
+        ? `Email: ${meta.labEmail || '-'}    Phone: ${meta.labPhone || '-'}`
         : '';
 
     return {
@@ -311,7 +313,7 @@ export class NewMeterReportPdfService {
             { text: 'Tested by', bold: true, fontSize: 8 },
             line,
             {
-              text: (meta.testing_user || '-').toUpperCase(),
+              text: signatureNameUpper(resolveReportSignatureNames(meta).testerName),
               fontSize: 7.5,
               color: this.theme.textSubtle,
               margin: [0, 2, 0, 1]
@@ -345,7 +347,7 @@ export class NewMeterReportPdfService {
             { text: 'Approved by', bold: true, fontSize: 8 },
             line,
             {
-              text: (meta.approving_user || '-').toUpperCase(),
+              text: signatureNameUpper(resolveReportSignatureNames(meta).approverName),
               fontSize: 7.5,
               color: this.theme.textSubtle,
               margin: [0, 2, 0, 1]
@@ -463,6 +465,7 @@ export class NewMeterReportPdfService {
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);
+    appendReportDownloadQr(doc, { meta, firstRow: rows?.[0] }, 'NEW');
     const fname = `NEW_METER_${meta.date}.pdf`;
 
     return new Promise<void>((resolve) => {
@@ -492,6 +495,7 @@ export class NewMeterReportPdfService {
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);
+    appendReportDownloadQr(doc, { meta, firstRow: rows?.[0] }, 'NEW');
     pdfMake.createPdf(doc).open();
   }
 }

@@ -1,3 +1,5 @@
+import { appendReportDownloadQr } from './report-download-qr.util';
+import { resolveReportSignatureNames, signatureNameUpper } from './report-signature-name.util';
 // src/app/shared/oldagainstmeter-report-pdf.service.ts
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -312,7 +314,7 @@ export class OldAgainstMeterReportPdfService {
             { text: 'Tested by', bold: true, fontSize: 8 },
             line,
             {
-              text: (meta.testing_user || '-').toUpperCase(),
+              text: signatureNameUpper(resolveReportSignatureNames(meta).testerName),
               fontSize: 7.5,
               color: this.theme.textSubtle,
               margin: [0, 2, 0, 1]
@@ -346,7 +348,7 @@ export class OldAgainstMeterReportPdfService {
             { text: 'Approved by', bold: true, fontSize: 8 },
             line,
             {
-              text: (meta.approving_user || '-').toUpperCase(),
+              text: signatureNameUpper(resolveReportSignatureNames(meta).approverName),
               fontSize: 7.5,
               color: this.theme.textSubtle,
               margin: [0, 2, 0, 1]
@@ -460,6 +462,7 @@ export class OldAgainstMeterReportPdfService {
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);
+    appendReportDownloadQr(doc, { meta, firstRow: rows?.[0] }, 'AGAINST_OLD_METER');
     const fname = `AGAINST_OLD_METER_${meta.date}.pdf`;
 
     return new Promise<void>((resolve) => {
@@ -489,6 +492,7 @@ export class OldAgainstMeterReportPdfService {
     }
 
     const doc = this.buildDoc(rows, meta, imagesDict);
+    appendReportDownloadQr(doc, { meta, firstRow: rows?.[0] }, 'AGAINST_OLD_METER');
     pdfMake.createPdf(doc).open();
   }
 }

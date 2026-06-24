@@ -1,9 +1,10 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environment/environment';
+import { PUBLIC_API_REQUEST } from '../core/public-api-request.context';
 import { Lab, UserPublic, UserCreate, UserUpdate, UserRoleLink, Device, TestingBench, Vendor, Assignment, Testing, GatePass, TestReportPayload, TestingStatusAgg, DashboardCounts, BarChartItem, TestingBarChartItem, AssignmentBarItem, AssignmentPercentageItem, LineChartItem, TestingDashboardData, AssignmentDashboardData, DailySummaryResponse, MonthlySummaryResponse, CtTestReportPayload } from '../interface/models';
 
 export type DeviceType = 'METER' | 'CT';
@@ -180,7 +181,20 @@ getReportIds(startDate:any, endDate: any) {
 
 
 getDevicesByReportId(reportId: string) {
-  return this.http.get<any[]>(`${this.baseUrl}/testing/report/${reportId}`);
+  return this.http.get<any[]>(`${this.baseUrl}/testing/report/${encodeURIComponent(reportId)}`);
+}
+
+/**
+ * Public QR-download lookup. The matching FastAPI endpoint must not require a
+ * logged-in user. The HttpContext flag also prevents the Angular interceptor
+ * from adding a stale token or redirecting a public visitor to /wzlogin.
+ */
+getPublicDevicesByReportId(reportId: string) {
+  const context = new HttpContext().set(PUBLIC_API_REQUEST, true);
+  return this.http.get<any[]>(
+    `${this.baseUrl}/testing/report/${encodeURIComponent(reportId)}`,
+    { context }
+  );
 }
 
 

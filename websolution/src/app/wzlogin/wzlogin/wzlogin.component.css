@@ -1,11 +1,12 @@
 /* Container */
 .login-container {
   min-height: 100vh;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   /* background: linear-gradient(135deg, #f5f7fa 0%, #09234d 100%); */
-  background-image: url('../../../assets/bg/login_home.png');
+  background-image: linear-gradient(135deg, #10234d 0%, #1b1630 100%);
   background-size: cover;
   background-position: center;
   padding: 20px;
@@ -81,4 +82,35 @@
 }
 .social-login button:hover {
   transform: translateY(-3px);
+}
+
+
+.login-container.background-ready {
+  background-image:
+    linear-gradient(rgba(6, 20, 55, 0.18), rgba(6, 20, 55, 0.18)),
+    url('../../../assets/bg/login_home.png');
+}
+
+.background-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #10234d 0%, #1b1630 100%);
+  font-weight: 600;
+}
+
+.login-card {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.login-card.login-card-ready {
+  opacity: 1;
+  visibility: visible;
 }

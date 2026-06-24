@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { removePdfCellBackgroundColors } from './pdf-report-style.util';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 (pdfMake as any).vfs = pdfFonts.vfs;
@@ -144,7 +145,7 @@ export class GatepassPdfService {
       if (!images['leftLogo'] && images['rightLogo']) images['leftLogo'] = images['rightLogo'];
       if (!images['rightLogo'] && images['leftLogo']) images['rightLogo'] = images['leftLogo'];
   
-      return this.buildDoc(d, opts, images);
+      return removePdfCellBackgroundColors(this.buildDoc(d, opts, images));
     }
 
   // ---------- Core doc ----------
@@ -167,12 +168,28 @@ export class GatepassPdfService {
 
     const bestColCount = columns ?? this.pickSerialColumns(serials.length);
 
+    const nonBlank = (...values: any[]): string => {
+      const value = values.find(v => v !== null && v !== undefined && String(v).trim());
+      return value === undefined ? '' : String(value).trim();
+    };
+
     const metaForHeader = {
-      orgLine: (header?.orgLine || 'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED').toUpperCase(),
-      labLine: (header?.labLine || gp.lab_name || '-').toUpperCase(),
-      addressLine: header?.addressLine || gp.lab_address || '-',
-      email: header?.email || gp.lab_email || '-',
-      phone: header?.phone || gp.lab_phone || '-',
+      orgLine: nonBlank(
+        header?.orgLine,
+        'MADHYA PRADESH PASCHIM KHETRA VIDYUT VITARAN COMPANY LIMITED'
+      ).toUpperCase(),
+      labLine: nonBlank(
+        header?.labLine,
+        gp.lab_name,
+        'REGINAL METERING TESTING LABORATORY INDORE'
+      ).toUpperCase(),
+      addressLine: nonBlank(
+        header?.addressLine,
+        gp.lab_address,
+        'MPPKVVCL Near Conference Hall, Polo Ground, Indore (MP) 452003'
+      ),
+      email: nonBlank(header?.email, gp.lab_email, 'testinglabwzind@gmail.com'),
+      phone: nonBlank(header?.phone, gp.lab_phone, '0731-2997802'),
       logoWidth: header?.logoWidth ?? 36,
       logoHeight: header?.logoHeight ?? 36,
     };

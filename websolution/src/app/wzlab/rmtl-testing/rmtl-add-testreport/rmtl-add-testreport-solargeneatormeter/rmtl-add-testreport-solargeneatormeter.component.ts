@@ -264,9 +264,14 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       return { ok:false, msg:`Row #${missingDateIdx+1}: Date of Testing is required.` };
     }
 
-    this.testing_bench = this.testing_bench?.trim() || '-';
-    this.testing_user  = this.testing_user?.trim()  || '-';
-    this.approver_user = this.approver_user?.trim() || '-';
+    this.testing_bench = this.displayValue(this.header.testing_bench, this.testing_bench) || '-';
+    this.testing_user = this.displayValue(this.header.testing_user, this.testing_user) || '-';
+    this.approver_user = this.displayValue(this.header.approving_user, this.approver_user) || '-';
+
+    // Keep both form-header and PDF variables synchronized.
+    this.header.testing_bench = this.testing_bench;
+    this.header.testing_user = this.testing_user;
+    this.header.approving_user = this.approver_user;
 
     return { ok:true };
   }
@@ -357,6 +362,45 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       };
     }
   }
+  private displayValue(...values: Array<string | null | undefined>): string {
+    for (const value of values) {
+      const text = (value || '').trim();
+      if (text && text !== '-') return text;
+    }
+    return '';
+  }
+
+  private applyAssignmentHeaderMetadata(assignment?: AssignmentItem | null): void {
+    if (!assignment) return;
+
+    const tester = this.displayValue(
+      assignment.user_assigned?.name,
+      assignment.user_assigned?.username
+    );
+    const approver = this.displayValue(
+      assignment.assigned_by_user?.name,
+      assignment.assigned_by_user?.username
+    );
+    const bench = this.displayValue(assignment.testing_bench?.bench_name);
+
+    if (!this.displayValue(this.header.location_code)) {
+      this.header.location_code = assignment.device?.location_code || '';
+    }
+    if (!this.displayValue(this.header.location_name)) {
+      this.header.location_name = assignment.device?.location_name || '';
+    }
+    if (!this.displayValue(this.header.phase) && assignment.device?.phase) {
+      this.header.phase = assignment.device.phase.toUpperCase();
+    }
+
+    if (!this.displayValue(this.header.testing_bench) && bench) this.header.testing_bench = bench;
+    if (!this.displayValue(this.header.testing_user) && tester) this.header.testing_user = tester;
+    if (!this.displayValue(this.header.approving_user) && approver) this.header.approving_user = approver;
+
+    if (!this.displayValue(this.testing_bench) && bench) this.testing_bench = bench;
+    if (!this.displayValue(this.testing_user) && tester) this.testing_user = tester;
+    if (!this.displayValue(this.approver_user) && approver) this.approver_user = approver;
+  }
 
   // ---------- assigned loading ----------
   reloadAssigned(replaceRows: boolean = true) {
@@ -376,6 +420,7 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
         });
 
         this.rebuildSerialIndex(asg);
+        this.applyAssignmentHeaderMetadata(asg.find(a => !!a.device) || asg[0]);
 
         // const first = asg.find(a => a.device);
         // if (first?.device){
@@ -454,6 +499,8 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
       this.showBanner('warning', 'No selection — Select at least one device.');
       return;
     }
+    this.applyAssignmentHeaderMetadata(chosen[0]);
+
     const newRows = chosen.map(a => {
       const d = a.device || ({} as MeterDevice);
       if (!this.header.location_code) this.header.location_code = a.device?.location_code ?? '';
@@ -717,9 +764,9 @@ export class RmtlAddTestreportSolargeneatormeterComponent implements OnInit {
           location_name: this.header.location_name,
           testMethod: this.testMethod,
           testStatus: this.testStatus,
-          testing_bench: this.testing_bench || '-',
-          testing_user: this.testing_user || '-',
-          approving_user: this.approver_user || '-',
+          testing_bench: this.displayValue(this.header.testing_bench, this.testing_bench) || '-',
+          testing_user: this.displayValue(this.header.testing_user, this.testing_user) || '-',
+          approving_user: this.displayValue(this.header.approving_user, this.approver_user) || '-',
           date: new Date().toISOString().slice(0, 10),
 
           lab_name: this.labInfo?.lab_name || null,

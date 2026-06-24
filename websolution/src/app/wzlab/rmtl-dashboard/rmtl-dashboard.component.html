@@ -1,60 +1,56 @@
 <div class="container-fluid mt-2">
-
- <!-- Dashboard Header -->
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-  <div class="d-flex align-items-center">
-    <img src="../../../assets/icons/wzlogo.png" alt="" height="40px" width="40px" class="me-2">
-    <h4 class="fw-bold mb-0 text-uppercase dashboard-title" style="color: rgb(172, 97, 11); margin-left: 15px;">Meter Testing Laboratory Dashboard</h4>
-  </div>
-</div>
-
-<!-- Filter Card -->
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-
-      <!-- From Date -->
-      <div class="col-12 col-sm-6 col-md-4">
-        <label class="form-label fw-semibold">From Date</label>
-        <input
-          type="date"
-          class="form-control"
-          [(ngModel)]="filters.start_date"
-          (change)="onDateChange()"
-        />
-      </div>
-
-      <!-- To Date -->
-      <div class="col-12 col-sm-6 col-md-4">
-        <label class="form-label fw-semibold">To Date</label>
-        <input
-          type="date"
-          class="form-control"
-          [(ngModel)]="filters.end_date"
-          (change)="onDateChange()"
-        />
-      </div>
-
-      <!-- Lab Select -->
-      <div class="col-12 col-md-4">
-        <label class="form-label fw-semibold">Select Lab</label>
-        <select
-          class="form-select"
-          [(ngModel)]="filters.lab_id"
-          (change)="onLabChange()"
-        >
-          <option value="">All Labs</option>
-          <option *ngFor="let lab of labs" [value]="lab.id">
-            {{ lab.lab_name }}
-          </option>
-        </select>
-      </div>
-
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <div class="d-flex align-items-center">
+      <img src="../../../assets/icons/wzlogo.png" alt="" height="40" width="40" class="me-2">
+      <h4
+        class="fw-bold mb-0 text-uppercase dashboard-title"
+        style="color: rgb(172, 97, 11); margin-left: 15px;"
+      >
+        Meter Testing Laboratory Dashboard
+      </h4>
     </div>
   </div>
-</div>
 
+  <!-- Filter Card -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-sm-6 col-md-4">
+          <label class="form-label fw-semibold">From Date</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="filters.start_date"
+            (change)="onDateChange()"
+          />
+        </div>
 
+        <div class="col-12 col-sm-6 col-md-4">
+          <label class="form-label fw-semibold">To Date</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="filters.end_date"
+            (change)="onDateChange()"
+          />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold">Select Lab</label>
+          <select
+            class="form-select"
+            [(ngModel)]="filters.lab_id"
+            (change)="onLabChange()"
+          >
+            <option value="">All Labs</option>
+            <option *ngFor="let lab of labs" [value]="lab.id">
+              {{ lab.lab_name }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Loading / Error -->
   <div *ngIf="isLoading" class="alert alert-light border d-flex align-items-center gap-2">
@@ -65,14 +61,10 @@
 
   <!-- MAIN DASHBOARD -->
   <div *ngIf="!isLoading && !error && mainData">
-
-    <!-- ===================== MAIN DASHBOARD ===================== -->
-  <div *ngIf=" !isLoading && !error && mainData" class="mb-4">
-
-    <!-- MAIN KPIs -->
+    <!-- KPI Cards -->
     <div class="row g-3">
       <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100"  style="background: linear-gradient(135deg, #e8f8f5, #d1f2eb);">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #e8f8f5, #d1f2eb);">
           <div class="card-body">
             <div class="text-muted fw-bold">Inwards Device</div>
             <div class="h5 fw-bold mb-0">{{ number(mainData.counts?.inwards_device) }}</div>
@@ -144,45 +136,106 @@
       </div>
     </div>
 
-    <!-- Charts -->
+    <!-- Existing charts row -->
     <div class="row g-3 mt-3">
-      <div class="col-12 col-xl-2">
+      <div class="col-12 col-xl-3">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
             <div class="fw-semibold">Devices by Type</div>
             <div class="text-muted small">Total received</div>
           </div>
           <div class="card-body">
-            <div style="height:260px; position:relative;">
+            <div style="height:280px; position:relative;">
               <canvas id="devicesByTypeChart"></canvas>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-xl-2">
+      <div class="col-12 col-xl-3">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
             <div class="fw-semibold">Testing Progress</div>
             <div class="text-muted small">Completed vs Total</div>
           </div>
           <div class="card-body">
-            <div style="height:260px; position:relative;">
+            <div style="height:280px; position:relative;">
               <canvas id="testingProgressChart"></canvas>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-xl-2">
+      <div class="col-12 col-xl-3">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
             <div class="fw-semibold">Assignment %</div>
             <div class="text-muted small">Assigned / Total per type</div>
           </div>
           <div class="card-body">
-            <div style="height:260px; position:relative;">
+            <div style="height:280px; position:relative;">
               <canvas id="assignmentPctChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-3">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Approval Pipeline</div>
+            <div class="text-muted small">Pending vs Done</div>
+          </div>
+          <div class="card-body">
+            <div style="height:280px; position:relative;">
+              <canvas id="approvalStatusChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corporate user analytics -->
+    <div class="row g-3 mt-3">
+      <div class="col-12 col-xl-8">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Testing Users Performance</div>
+            <div class="text-muted small">Assigned, Done, Pending, Pending Approval</div>
+          </div>
+          <div class="card-body">
+            <div style="height:340px; position:relative;">
+              <canvas id="testingUsersChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Testing Work Distribution</div>
+            <div class="text-muted small">Share of total assigned work</div>
+          </div>
+          <div class="card-body">
+            <div style="height:340px; position:relative;">
+              <canvas id="testingUsersShareChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+      <div class="col-12 col-xl-6">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">OIC Assignment Oversight</div>
+            <div class="text-muted small">Assigned vs Pending Approval</div>
+          </div>
+          <div class="card-body">
+            <div style="height:320px; position:relative;">
+              <canvas id="oicUsersChart"></canvas>
             </div>
           </div>
         </div>
@@ -191,113 +244,32 @@
       <div class="col-12 col-xl-6">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
-            <div class="fw-semibold">Inwarded per Day</div>
-            <div class="text-muted small">Single / Three Phase only</div>
+            <div class="fw-semibold">Store Operations</div>
+            <div class="text-muted small">Inwarded vs Dispatched by user</div>
           </div>
           <div class="card-body">
-            <div style="height:260px; position:relative;">
-              <canvas id="inwardPerDayChart"></canvas>
+            <div style="height:320px; position:relative;">
+              <canvas id="storeUsersChart"></canvas>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Userwise tables -->
     <div class="row g-3 mt-3">
-      <div class="col-md-12">
+      <div class="col-12">
         <div class="card shadow-sm border-0">
-          <div class="card-header fw-semibold" style="background-color: rgb(71, 175, 124);color: whitesmoke;">Testing Users Summary</div>
-          <div class="card-body table-responsive">
-            <table class="table table-sm table-bordered align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>Name</th>
-                  <th>Total Assigned</th>
-                  <th>Done</th>
-                  <th>Pending</th>
-                  <th>Approved</th>
-                  <th>Pending Approval</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let u of mainData.userwise?.testing_users">
-                  <td>{{ u.name }}</td>
-                  <td>{{ u.total_assigned }}</td>
-                  <td>{{ u.testing_done }}</td>
-                  <td>{{ u.testing_pending }}</td>
-                  <td>{{ u.approved }}</td>
-                  <td>{{ u.pending_approval }}</td>
-                </tr>
-                <tr *ngIf="(mainData.userwise?.testing_users?.length || 0) === 0">
-                  <td colspan="6" class="text-center text-muted">No records</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="card-header bg-white border-0">
+            <div class="fw-semibold">Inwarded per Day</div>
+            <div class="text-muted small">Single / Three Phase only</div>
+          </div>
+          <div class="card-body">
+            <div style="height:300px; position:relative;">
+              <canvas id="inwardPerDayChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
-
-      <div class="col-md-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header fw-semibold" style="background-color: rgb(71, 175, 124);color: whitesmoke;">OIC Users Summary</div>
-          <div class="card-body table-responsive">
-            <table class="table table-sm table-bordered align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>Name</th>
-                  <th>Assigned</th>
-                  <th>Not Assigned</th>
-                  <th>Approved</th>
-                  <th>Pending</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let u of mainData.userwise?.oic_users">
-                  <td>{{ u.name }}</td>
-                  <td>{{ u.total_assigned_by_me }}</td>
-                  <td>{{ u.not_assigned }}</td>
-                  <td>{{ u.approved }}</td>
-                  <td>{{ u.pending_approval }}</td>
-                </tr>
-                <tr *ngIf="(mainData.userwise?.oic_users?.length || 0) === 0">
-                  <td colspan="5" class="text-center text-muted">No records</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header fw-semibold" style="background-color: rgb(71, 175, 124);color: whitesmoke;">Store Users Summary</div>
-          <div class="card-body table-responsive">
-            <table class="table table-sm table-bordered align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>Name</th>
-                  <th>Inwarded By User</th>
-                  <th>Dispatched By User</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let u of mainData.userwise?.store_users">
-                  <td>{{ u.name }}</td>
-                  <td>{{ u.inwarded_by_me }}</td>
-                  <td>{{ u.dispatched_by_me }}</td>
-                </tr>
-                <tr *ngIf="(mainData.userwise?.store_users?.length || 0) === 0">
-                  <td colspan="5" class="text-center text-muted">No records</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
     </div>
-  </div>
-
   </div>
 </div>

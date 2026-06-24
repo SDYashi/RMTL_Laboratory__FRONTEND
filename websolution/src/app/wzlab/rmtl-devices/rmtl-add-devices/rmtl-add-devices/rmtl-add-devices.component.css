@@ -52,3 +52,462 @@ input.form-control:focus, select.form-select:focus {
   .table-wrap > table { min-width: 900px; }
 }
 
+/* Camera scan icon controls */
+.scan-icon-panel {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #d8eadf;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fffb, #eefaf4);
+}
+
+.scan-camera-action {
+  width: 62px;
+  height: 42px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  user-select: none;
+  outline: none;
+}
+
+.scan-camera-action:hover,
+.scan-camera-action:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+}
+
+.scan-camera-qr {
+  background: #e7f1ff;
+}
+
+.scan-camera-barcode {
+  background: #f1f3f5;
+}
+
+.css-camera-icon {
+  width: 34px;
+  height: 24px;
+  border: 3px solid #222;
+  border-radius: 6px;
+  position: relative;
+  background: #fff;
+}
+
+.css-camera-icon::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  width: 14px;
+  height: 7px;
+  border: 3px solid #222;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: #fff;
+}
+
+.css-camera-icon::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #222;
+}
+
+.css-camera-lens {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border: 3px solid #222;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #dff7ec;
+}
+
+.scan-icon-label {
+  position: absolute;
+  right: -4px;
+  bottom: -5px;
+  min-width: 24px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  background: #198754;
+  border: 2px solid #fff;
+}
+
+.scan-camera-barcode .scan-icon-label {
+  background: #212529;
+}
+
+@media (max-width: 768px) {
+  .scan-icon-panel {
+    justify-content: flex-start;
+  }
+}
+
+
+
+/* Add these styles in rmtl-add-devices.component.css */
+
+/* Camera scan icon controls */
+.scan-icon-panel {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #d8eadf;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fffb, #eefaf4);
+}
+
+.scan-camera-action {
+  width: 62px;
+  height: 42px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  border-radius: 10px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  user-select: none;
+  outline: none;
+}
+
+.scan-camera-action:hover,
+.scan-camera-action:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+}
+
+.scan-camera-qr {
+  background: #e7f1ff;
+}
+
+.scan-camera-barcode {
+  background: #f1f3f5;
+}
+
+.css-camera-icon {
+  width: 34px;
+  height: 24px;
+  border: 3px solid #222;
+  border-radius: 6px;
+  position: relative;
+  background: #fff;
+}
+
+.css-camera-icon::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  width: 14px;
+  height: 7px;
+  border: 3px solid #222;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: #fff;
+}
+
+.css-camera-icon::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #222;
+}
+
+.css-camera-lens {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border: 3px solid #222;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #dff7ec;
+}
+
+.css-barcode-icon {
+  width: 36px;
+  height: 26px;
+  padding: 4px 5px;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: space-between;
+  border: 3px solid #222;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.css-barcode-icon span {
+  display: block;
+  height: 100%;
+  background: #222;
+}
+
+.css-barcode-icon span:nth-child(1) { width: 3px; }
+.css-barcode-icon span:nth-child(2) { width: 6px; }
+.css-barcode-icon span:nth-child(3) { width: 2px; }
+.css-barcode-icon span:nth-child(4) { width: 5px; }
+.css-barcode-icon span:nth-child(5) { width: 3px; }
+
+.scan-icon-label {
+  position: absolute;
+  right: -4px;
+  bottom: -5px;
+  min-width: 24px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  background: #198754;
+  border: 2px solid #fff;
+}
+
+.scan-camera-barcode .scan-icon-label {
+  background: #212529;
+}
+
+/* Camera scanner modal */
+.scanner-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.scanner-modal {
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.scanner-header {
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgb(71, 175, 124);
+  color: #fff;
+}
+
+.scanner-header h5 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.scanner-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.scanner-body {
+  position: relative;
+  min-height: 330px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.scanner-video {
+  width: 100%;
+  height: 330px;
+  object-fit: cover;
+}
+
+.scan-frame {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  border: 3px solid #00ff88;
+  border-radius: 18px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.34);
+}
+
+.scan-frame-barcode {
+  width: 78%;
+  height: 130px;
+}
+
+.scan-line {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: #00ff88;
+  animation: scanMove 1.45s linear infinite;
+}
+
+@keyframes scanMove {
+  0% { top: 12px; }
+  100% { top: calc(100% - 15px); }
+}
+
+.scanner-help {
+  position: absolute;
+  left: 50%;
+  bottom: 38px;
+  transform: translateX(-50%);
+  margin: 0;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.scanner-error {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  margin: 0;
+  color: #ffdddd;
+  font-size: 12px;
+  text-align: center;
+}
+
+.scanner-footer {
+  padding: 12px 16px;
+  text-align: right;
+  border-top: 1px solid #e9ecef;
+}
+
+@media (max-width: 768px) {
+  .scan-icon-panel {
+    justify-content: flex-start;
+  }
+
+  .scanner-modal {
+    max-width: 100%;
+  }
+
+  .scanner-video {
+    height: 300px;
+  }
+}
+
+
+
+/* Cross-browser QR / barcode reader (html5-qrcode) */
+.scanner-reader {
+  width: 100%;
+  min-height: 320px;
+  background: #000;
+}
+
+.scanner-reader video,
+.scanner-reader canvas {
+  width: 100% !important;
+  max-height: 430px;
+  object-fit: cover;
+}
+
+.scanner-reader img {
+  max-width: 100%;
+}
+
+.scanner-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.scanner-message-area {
+  padding: 10px 16px 6px;
+  border-top: 1px solid #e9ecef;
+  background: #fff;
+}
+
+.scanner-status,
+.scanner-error {
+  position: static;
+  transform: none;
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: normal;
+  text-align: left;
+  font-size: 13px;
+}
+
+.scanner-status {
+  color: #0f5132;
+  background: #d1e7dd;
+}
+
+.scanner-error {
+  color: #842029;
+  background: #f8d7da;
+}
+
+#rmtl-camera-reader__scan_region {
+  min-height: 300px;
+  background: #000;
+}
+
+#rmtl-camera-reader__dashboard {
+  display: none !important;
+}
