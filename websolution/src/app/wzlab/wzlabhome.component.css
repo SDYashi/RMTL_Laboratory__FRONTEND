@@ -268,3 +268,67 @@ html, body {
   background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='12' width='12' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M7 14l5-5 5 5z'/></svg>");
 }
 
+
+
+/* Profile dropdown: keep visible and open toward the left on all screens */
+.profile-dropdown {
+  position: relative;
+}
+
+.user-btn {
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+.user-btn:hover,
+.user-btn:focus {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+.profile-menu {
+  left: auto !important;
+  right: 0 !important;
+  min-width: 190px;
+  max-width: calc(100vw - 24px);
+  border: 0;
+  border-radius: 12px;
+  padding: 0.45rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  z-index: 1060;
+}
+
+.profile-menu .dropdown-item {
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-menu .dropdown-item:hover {
+  background-color: #eef3ff;
+  color: #062064;
+}
+
+@media (max-width: 575.98px) {
+  .top-nav {
+    overflow: visible;
+  }
+
+  .profile-dropdown {
+    position: static;
+  }
+
+  .profile-menu {
+    position: fixed !important;
+    top: 58px !important;
+    left: 12px !important;
+    right: auto !important;
+    width: calc(100vw - 24px);
+    max-width: 320px;
+    transform: none !important;
+  }
+}

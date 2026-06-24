@@ -294,6 +294,66 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
     return (n ?? 0).toLocaleString();
   }
 
+  testingUsersTable(): any[] {
+    return (this.mainData?.userwise?.testing_users || [])
+      .filter(
+        (u) =>
+          (u.total_assigned || 0) > 0 ||
+          (u.testing_done || 0) > 0 ||
+          (u.testing_pending || 0) > 0 ||
+          (u.pending_approval || 0) > 0
+      )
+      .sort((a, b) => (b.total_assigned || 0) - (a.total_assigned || 0));
+  }
+
+  oicUsersTable(): any[] {
+    return (this.mainData?.userwise?.oic_users || [])
+      .filter(
+        (u) =>
+          (u.total_assigned_by_me || 0) > 0 ||
+          (u.pending_approval || 0) > 0 ||
+          (u.not_assigned || 0) > 0
+      )
+      .sort((a, b) => (b.total_assigned_by_me || 0) - (a.total_assigned_by_me || 0));
+  }
+
+  storeUsersTable(): any[] {
+    return (this.mainData?.userwise?.store_users || [])
+      .filter((u) => (u.inwarded_by_me || 0) > 0 || (u.dispatched_by_me || 0) > 0)
+      .sort(
+        (a, b) =>
+          ((b.inwarded_by_me || 0) + (b.dispatched_by_me || 0)) -
+          ((a.inwarded_by_me || 0) + (a.dispatched_by_me || 0))
+      );
+  }
+
+  completionPct(user: any): number {
+    const assigned = Number(user?.total_assigned || 0);
+    const done = Number(user?.testing_done || 0);
+    if (!assigned) return 0;
+    return Math.min(100, Math.round((done / assigned) * 100));
+  }
+
+  workSharePct(user: any): number {
+    const total = this.testingUsersTable().reduce(
+      (sum, item) => sum + Number(item.total_assigned || 0),
+      0
+    );
+    if (!total) return 0;
+    return Math.round((Number(user?.total_assigned || 0) / total) * 100);
+  }
+
+  getInitials(name: string): string {
+    const parts = String(name || 'U')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    return parts
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join('') || 'U';
+  }
+
   private buildChartParams(from_date: string, to_date: string) {
     return {
       lab_id: this.filters.lab_id ? Number(this.filters.lab_id) : undefined,
@@ -714,10 +774,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
       'testingProgressChart',
       'assignmentPctChart',
       'approvalStatusChart',
-      'testingUsersChart',
-      'testingUsersShareChart',
-      'oicUsersChart',
-      'storeUsersChart',
       'inwardPerDayChart',
     ];
 
@@ -752,30 +808,6 @@ export class RmtlDashboardComponent implements OnInit, OnDestroy {
         'approvalStatusChart',
         this.approvalStatusChart,
         this.approvalStatusConfig!
-      );
-
-      this.testingUsersChart = this.initOrUpdateChart(
-        'testingUsersChart',
-        this.testingUsersChart,
-        this.testingUsersConfig!
-      );
-
-      this.testingUsersShareChart = this.initOrUpdateChart(
-        'testingUsersShareChart',
-        this.testingUsersShareChart,
-        this.testingUsersShareConfig!
-      );
-
-      this.oicUsersChart = this.initOrUpdateChart(
-        'oicUsersChart',
-        this.oicUsersChart,
-        this.oicUsersConfig!
-      );
-
-      this.storeUsersChart = this.initOrUpdateChart(
-        'storeUsersChart',
-        this.storeUsersChart,
-        this.storeUsersConfig!
       );
 
       this.inwardPerDayChart = this.initOrUpdateChart(

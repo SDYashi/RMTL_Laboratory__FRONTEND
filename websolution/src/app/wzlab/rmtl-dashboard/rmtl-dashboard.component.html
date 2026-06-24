@@ -138,7 +138,7 @@
 
     <!-- Existing charts row -->
     <div class="row g-3 mt-3">
-      <div class="col-12 col-xl-3">
+      <div class="col-12 col-xl-2">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
             <div class="fw-semibold">Devices by Type</div>
@@ -166,7 +166,7 @@
         </div>
       </div>
 
-      <div class="col-12 col-xl-3">
+      <div class="col-12 col-xl-2">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
             <div class="fw-semibold">Assignment %</div>
@@ -180,7 +180,7 @@
         </div>
       </div>
 
-      <div class="col-12 col-xl-3">
+      <div class="col-12 col-xl-5">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-header bg-white border-0">
             <div class="fw-semibold">Approval Pipeline</div>
@@ -189,67 +189,6 @@
           <div class="card-body">
             <div style="height:280px; position:relative;">
               <canvas id="approvalStatusChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Corporate user analytics -->
-    <div class="row g-3 mt-3">
-      <div class="col-12 col-xl-8">
-        <div class="card shadow-sm border-0 h-100">
-          <div class="card-header bg-white border-0">
-            <div class="fw-semibold">Testing Users Performance</div>
-            <div class="text-muted small">Assigned, Done, Pending, Pending Approval</div>
-          </div>
-          <div class="card-body">
-            <div style="height:340px; position:relative;">
-              <canvas id="testingUsersChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-4">
-        <div class="card shadow-sm border-0 h-100">
-          <div class="card-header bg-white border-0">
-            <div class="fw-semibold">Testing Work Distribution</div>
-            <div class="text-muted small">Share of total assigned work</div>
-          </div>
-          <div class="card-body">
-            <div style="height:340px; position:relative;">
-              <canvas id="testingUsersShareChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row g-3 mt-3">
-      <div class="col-12 col-xl-6">
-        <div class="card shadow-sm border-0 h-100">
-          <div class="card-header bg-white border-0">
-            <div class="fw-semibold">OIC Assignment Oversight</div>
-            <div class="text-muted small">Assigned vs Pending Approval</div>
-          </div>
-          <div class="card-body">
-            <div style="height:320px; position:relative;">
-              <canvas id="oicUsersChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-6">
-        <div class="card shadow-sm border-0 h-100">
-          <div class="card-header bg-white border-0">
-            <div class="fw-semibold">Store Operations</div>
-            <div class="text-muted small">Inwarded vs Dispatched by user</div>
-          </div>
-          <div class="card-body">
-            <div style="height:320px; position:relative;">
-              <canvas id="storeUsersChart"></canvas>
             </div>
           </div>
         </div>
@@ -271,5 +210,170 @@
         </div>
       </div>
     </div>
+    <!-- Official responsive user-wise tables -->
+    <div class="row g-3 mt-3">
+      <div class="col-12 col-xl-8">
+        <div class="card shadow-sm border-0 h-100 official-table-card">
+          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="fw-semibold section-title"><i class="fas fa-user-check me-2 text-primary"></i>Testing Users Performance</div>
+              <div class="text-muted small">Assigned, completed, pending and approval workload</div>
+            </div>
+           </div>
+          <div class="card-body p-0">
+            <div class="official-table-responsive">
+              <table class="table official-table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th class="text-end">Assigned</th>
+                    <th class="text-end">Done</th>
+                    <th class="text-end">Pending</th>
+                    <th class="text-end">Pending Approval</th>
+                    <th style="min-width: 150px;">Completion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let user of testingUsersTable(); let i = index">
+                    <td data-label="User">
+                      <div class="user-cell">
+                         <div>
+                          <div class="fw-semibold">{{ user.name || 'Unknown User' }}</div>
+                          </div>
+                      </div>
+                    </td>
+                    <td data-label="Assigned" class="text-end fw-semibold">{{ number(user.total_assigned) }}</td>
+                    <td data-label="Done" class="text-end text-success fw-semibold">{{ number(user.testing_done) }}</td>
+                    <td data-label="Pending" class="text-end text-warning fw-semibold">{{ number(user.testing_pending) }}</td>
+                    <td data-label="Pending Approval" class="text-end text-primary fw-semibold">{{ number(user.pending_approval) }}</td>
+                    <td data-label="Completion">
+                      <div class="progress official-progress">
+                        <div class="progress-bar" [style.width.%]="completionPct(user)"></div>
+                      </div>
+                      <div class="small text-muted mt-1">{{ completionPct(user) }}%</div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="testingUsersTable().length === 0">
+                    <td colspan="6" class="table-empty">No testing user performance data found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <div class="card shadow-sm border-0 h-100 official-table-card">
+          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="fw-semibold section-title"><i class="fas fa-chart-pie me-2 text-info"></i>Testing Work Distribution</div>
+              <div class="text-muted small">Share of total assigned work</div>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="official-table-responsive compact-table">
+              <table class="table official-table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th class="text-end">Assigned</th>
+                    <th class="text-end">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let user of testingUsersTable()">
+                    <td data-label="User" class="fw-semibold">{{ user.name || 'Unknown User' }}</td>
+                    <td data-label="Assigned" class="text-end">{{ number(user.total_assigned) }}</td>
+                    <td data-label="Share" class="text-end">
+                      <span class="status-pill info">{{ workSharePct(user) }}%</span>
+                    </td>
+                  </tr>
+                  <tr *ngIf="testingUsersTable().length === 0">
+                    <td colspan="3" class="table-empty">No work distribution data found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+      <div class="col-12 col-xl-6">
+        <div class="card shadow-sm border-0 h-100 official-table-card">
+          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="fw-semibold section-title"><i class="fas fa-user-shield me-2 text-secondary"></i>OIC Assignment Oversight</div>
+              <div class="text-muted small">Assigned, pending approval and not assigned status</div>
+            </div>
+            </div>
+          <div class="card-body p-0">
+            <div class="official-table-responsive">
+              <table class="table official-table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>OIC User</th>
+                    <th class="text-end">Assigned</th>
+                    <th class="text-end">Pending Approval</th>
+                    <th class="text-end">Not Assigned</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let user of oicUsersTable()">
+                    <td data-label="OIC User" class="fw-semibold">{{ user.name || 'Unknown User' }}</td>
+                    <td data-label="Assigned" class="text-end text-info fw-semibold">{{ number(user.total_assigned_by_me) }}</td>
+                    <td data-label="Pending Approval" class="text-end text-warning fw-semibold">{{ number(user.pending_approval) }}</td>
+                    <td data-label="Not Assigned" class="text-end text-danger fw-semibold">{{ number(user.not_assigned) }}</td>
+                  </tr>
+                  <tr *ngIf="oicUsersTable().length === 0">
+                    <td colspan="4" class="table-empty">No OIC assignment oversight data found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-6">
+        <div class="card shadow-sm border-0 h-100 official-table-card">
+          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="fw-semibold section-title"><i class="fas fa-warehouse me-2 text-success"></i>Store Operations</div>
+              <div class="text-muted small">Inwarded and dispatched devices by store user</div>
+            </div>
+            <span class="official-count-badge">{{ storeUsersTable().length }} Users</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="official-table-responsive">
+              <table class="table official-table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Store User</th>
+                    <th class="text-end">Inwarded</th>
+                    <th class="text-end">Dispatched</th>
+                    <th class="text-end">Total Handled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let user of storeUsersTable()">
+                    <td data-label="Store User" class="fw-semibold">{{ user.name || 'Unknown User' }}</td>
+                    <td data-label="Inwarded" class="text-end text-success fw-semibold">{{ number(user.inwarded_by_me) }}</td>
+                    <td data-label="Dispatched" class="text-end text-danger fw-semibold">{{ number(user.dispatched_by_me) }}</td>
+                    <td data-label="Total Handled" class="text-end fw-bold">{{ number((user.inwarded_by_me || 0) + (user.dispatched_by_me || 0)) }}</td>
+                  </tr>
+                  <tr *ngIf="storeUsersTable().length === 0">
+                    <td colspan="4" class="table-empty">No store operation data found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

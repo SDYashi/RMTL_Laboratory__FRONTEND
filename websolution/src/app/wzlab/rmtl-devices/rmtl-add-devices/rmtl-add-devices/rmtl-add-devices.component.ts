@@ -58,6 +58,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit, OnDestroy
   filteredSources: any = null;
   inwardDate = this.todayISO();
   maxInwardDate = this.todayISO();
+  minInwardDate = this.oneYearAgoISO();
 
   // -------- Enums (DB-safe values) --------
   makes: string[] = [];
@@ -971,6 +972,40 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit, OnDestroy
     const d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   }
+
+  private oneYearAgoISO(): string {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
+
+  private validateInwardDate(): boolean {
+    if (!this.inwardDate) {
+      this.showAlert('Missing Inward Date', 'Please select an inward date.');
+      return false;
+    }
+
+    const selected = new Date(`${this.inwardDate}T00:00:00`);
+    const today = new Date(`${this.todayISO()}T00:00:00`);
+    const oneYearAgo = new Date(`${this.oneYearAgoISO()}T00:00:00`);
+
+    if (Number.isNaN(selected.getTime())) {
+      this.showAlert('Invalid Inward Date', 'Please select a valid inward date.');
+      return false;
+    }
+
+    if (selected > today) {
+      this.showAlert('Invalid Inward Date', 'Inward date cannot be a future date.');
+      return false;
+    }
+
+    if (selected < oneYearAgo) {
+      this.showAlert('Invalid Inward Date', 'Inward date cannot be older than one year from today.');
+      return false;
+    }
+
+    return true;
+  }
   private in(list: string[], v?: string | null) {
     return !v || !list.length || list.includes(v);
   }
@@ -992,10 +1027,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
     if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
-    if (!this.inwardDate) {
-      this.showAlert('Missing Inward Date', 'Please select an inward date.');
-      return;
-    }
+    if (!this.validateInwardDate()) return;
 
     const cleaned = this.devices
       .map((d: DeviceRow, idx: number) => ({
@@ -1123,10 +1155,7 @@ export class RmtlAddDevicesComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
     if (!this.ensureSourceSelected() || !this.ensureLabId()) return;
-    if (!this.inwardDate) {
-      this.showAlert('Missing Inward Date', 'Please select an inward date.');
-      return;
-    }
+    if (!this.validateInwardDate()) return;
 
     const cleaned = this.cts
       .map((ct: CTRow, idx: number) => ({
